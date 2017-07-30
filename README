@@ -8,3 +8,9 @@ C source files are self-compiling, e.g. ./server.c.
     server.c       Maps torus.dat and listens on torus.sock.
     client.c       Curses client.
     help.c         Automated client which redraws a helpful banner.
+
+On FreeBSD with TERM=xterm-256color, the client fails to display bright
+colors. Applying termcap.diff sets it equivalent to TERM=xterm.
+
+    patch -p0 -o termcap < termcap.diff
+    cap_mkdb termcap

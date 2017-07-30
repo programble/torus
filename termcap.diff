@@ -1,0 +1,12 @@
+--- /usr/share/misc/termcap	2017-07-29 16:46:57.370274000 +0000
++++ termcap	2017-07-30 00:12:33.996614000 +0000
+@@ -2882,8 +2882,7 @@
+ 	:Co#88:pa#7744:tc=xterm-256color:
+ 
+ xterm-256color|xterm alias 3:\
+-	:Co#256:pa#32767:\
+-	:AB=\E[48;5;%dm:AF=\E[38;5;%dm:tc=xterm-new:
++	:tc=xterm-new:
+ 
+ xterm-nrc|xterm alias 4:\
+ 	:tc=xterm:
