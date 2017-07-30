@@ -13,3 +13,4 @@ C source files are self-compiling, e.g. ./server.c.
     chroot.sh      Creates chroot tarball.
     sshd_config    Anonymous login to chrooted client.
     termcap.diff   Patch for bright colors with TERM=xterm-256color.
+    index.html     Friendly directions.
