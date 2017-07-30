@@ -144,7 +144,7 @@ int main() {
         white(); mvPut( 1,  1, '/');
         brite(); mvPut( 1, -1, 'u');
 
-        clientMove(5, 0);
+        clientMove(5, -1);
         brite(); string("q");
         white(); string(" quit");
         enter();
@@ -160,8 +160,14 @@ int main() {
         brite(); string("~");
         white(); string(" color");
         enter();
+        brite(); string("`");
+        white(); string(" pipette");
+        enter();
+        brite(); string("*");
+        white(); string(" bright");
+        enter();
 
-        clientMove(13, -6);
+        clientMove(13, -7);
         color = COLOR_RED;     mvPut(0, 0, '1');
         color = COLOR_GREEN;   mvPut(0, 1, '2');
         color = COLOR_YELLOW;  mvPut(0, 1, '3');
@@ -169,15 +175,16 @@ int main() {
         color = COLOR_MAGENTA; mvPut(0, 1, '5');
         color = COLOR_CYAN;    mvPut(0, 1, '6');
         color = COLOR_WHITE;   mvPut(0, 1, '7');
-        color = COLOR_BRIGHT | COLOR_WHITE;   mvPut(2,  0, '&');
-        color = COLOR_BRIGHT | COLOR_CYAN;    mvPut(0, -1, '^');
-        color = COLOR_BRIGHT | COLOR_MAGENTA; mvPut(0, -1, '%');
-        color = COLOR_BRIGHT | COLOR_BLUE;    mvPut(0, -1, '$');
-        color = COLOR_BRIGHT | COLOR_YELLOW;  mvPut(0, -1, '#');
-        color = COLOR_BRIGHT | COLOR_GREEN;   mvPut(0, -1, '@');
-        color = COLOR_BRIGHT | COLOR_RED;     mvPut(0, -1, '!');
+        color = COLOR_WHITE   << 4; mvPut(2,  0, '&');
+        color = COLOR_CYAN    << 4; mvPut(0, -1, '^');
+        color = COLOR_MAGENTA << 4; mvPut(0, -1, '%');
+        color = COLOR_BLUE    << 4; mvPut(0, -1, '$');
+        color = COLOR_YELLOW  << 4; mvPut(0, -1, '#');
+        color = COLOR_GREEN   << 4; mvPut(0, -1, '@');
+        color = COLOR_RED     << 4; mvPut(0, -1, '!');
 
         clientMove(-26, -3);
+        color = COLOR_WHITE;
 
         sleep(30);
     }
