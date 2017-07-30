@@ -287,8 +287,10 @@ static void initColors(void) {
         exit(EX_CONFIG);
     }
     start_color();
-    for (int fg = COLOR_RED; fg < COLOR_BRIGHT; ++fg) {
-        init_pair(fg, fg, COLOR_BLACK);
+    for (int bg = COLOR_BLACK; bg < COLOR_BRIGHT; ++bg) {
+        for (int fg = COLOR_BLACK; fg < COLOR_BRIGHT; ++fg) {
+            init_pair(bg << 4 | fg, fg, bg);
+        }
     }
 }
 
