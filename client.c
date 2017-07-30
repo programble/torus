@@ -177,6 +177,8 @@ static void readInput(void) {
         case 'B': swapCell(-1,  1); break;
         case 'N': swapCell( 1,  1); break;
 
+        case '`': clientColor(CH_COLOR(inch())); break;
+
         case '1': clientColor(COLOR_RED); break;
         case '2': clientColor(COLOR_GREEN); break;
         case '3': clientColor(COLOR_YELLOW); break;
