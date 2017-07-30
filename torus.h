@@ -66,7 +66,6 @@ struct ServerMessage {
 
 enum ClientMessageType {
     CLIENT_MOVE,
-    CLIENT_COLOR,
     CLIENT_PUT,
 };
 
@@ -77,7 +76,9 @@ struct ClientMessage {
             int8_t dx;
             int8_t dy;
         } m;
-        uint8_t c;
-        char p;
+        struct {
+            uint8_t color;
+            char cell;
+        } p;
     } data;
 };

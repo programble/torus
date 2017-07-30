@@ -54,7 +54,6 @@ static struct Client {
     uint32_t tileY;
     uint8_t cellX;
     uint8_t cellY;
-    uint8_t color;
 
     struct Client *prev;
     struct Client *next;
@@ -69,7 +68,6 @@ static struct Client *clientAdd(int fd) {
     client->tileY = TILE_INIT_Y;
     client->cellX = CELL_INIT_X;
     client->cellY = CELL_INIT_Y;
-    client->color = COLOR_WHITE;
 
     client->prev = NULL;
     if (clientHead) {
@@ -161,15 +159,15 @@ static bool clientMove(struct Client *client, int8_t dx, uint8_t dy) {
     return true;
 }
 
-static bool clientPut(struct Client *client, char cell) {
+static bool clientPut(struct Client *client, uint8_t color, char cell) {
     struct Tile *tile = tileGet(client->tileX, client->tileY);
-    tile->colors[client->cellY][client->cellX] = client->color;
+    tile->colors[client->cellY][client->cellX] = color;
     tile->cells[client->cellY][client->cellX] = cell;
 
     struct ServerMessage msg = { .type = SERVER_PUT };
     msg.data.p.cellX = client->cellX;
     msg.data.p.cellY = client->cellY;
-    msg.data.p.color = client->color;
+    msg.data.p.color = color;
     msg.data.p.cell = cell;
     return clientCast(client, &msg);
 }
@@ -259,12 +257,8 @@ int main() {
                 clientMove(client, msg.data.m.dx, msg.data.m.dy);
                 break;
 
-            case CLIENT_COLOR:
-                client->color = msg.data.c;
-                break;
-
             case CLIENT_PUT:
-                clientPut(client, msg.data.p);
+                clientPut(client, msg.data.p.color, msg.data.p.cell);
                 break;
 
             default:

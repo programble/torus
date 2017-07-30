@@ -44,16 +44,17 @@ static void clientMove(int8_t dx, int8_t dy) {
     clientMessage(&msg);
 }
 
-static void clientColor(uint8_t color) {
-    struct ClientMessage msg = { .type = CLIENT_COLOR };
-    msg.data.c = color;
+static void clientPut(uint8_t color, char cell) {
+    struct ClientMessage msg = { .type = CLIENT_PUT };
+    msg.data.p.color = color;
+    msg.data.p.cell = cell;
     clientMessage(&msg);
 }
 
-static void clientPut(char cell) {
-    struct ClientMessage msg = { .type = CLIENT_PUT };
-    msg.data.p = cell;
-    clientMessage(&msg);
+static uint8_t inputColor = COLOR_WHITE;
+
+static void colorFg(uint8_t fg) {
+    inputColor = (inputColor & 0xF0) | fg;
 }
 
 static enum {
@@ -77,22 +78,19 @@ static void insertMode(int8_t dx, int8_t dy) {
 }
 
 static void swapCell(int8_t dx, int8_t dy) {
+    uint8_t aColor = CH_COLOR(inch());
+    char aCell = inch() & 0x7F;
+
     int sy, sx;
     getyx(stdscr, sy, sx);
-
     move(sy + dy, sx + dx);
-    char swapCell = inch() & 0x7F;
-    uint8_t swapColor = CH_COLOR(inch());
-
+    uint8_t bColor = CH_COLOR(inch());
+    char bCell = inch() & 0x7F;
     move(sy, sx);
-    char cell = inch() & 0x7F;
-    uint8_t color = CH_COLOR(inch());
 
-    clientColor(swapColor);
-    clientPut(swapCell);
+    clientPut(bColor, bCell);
     clientMove(dx, dy);
-    clientColor(color);
-    clientPut(cell);
+    clientPut(aColor, aCell);
 }
 
 static void readInput(void) {
@@ -115,7 +113,7 @@ static void readInput(void) {
             }
         } else if (c == '\b' || c == DEL) {
             clientMove(-insert.dx, -insert.dy);
-            clientPut(' ');
+            clientPut(inputColor, ' ');
             insert.len--;
         } else if (c == '\n') {
             clientMove(insert.dy, insert.dx);
@@ -124,7 +122,7 @@ static void readInput(void) {
             }
             insert.len = 0;
         } else if (isprint(c)) {
-            clientPut(c);
+            clientPut(inputColor, c);
             clientMove(insert.dx, insert.dy);
             insert.len++;
         }
@@ -132,7 +130,7 @@ static void readInput(void) {
     }
 
     if (mode == MODE_REPLACE) {
-        if (isprint(c)) clientPut(c);
+        if (isprint(c)) clientPut(inputColor, c);
         mode = MODE_NORMAL;
         return;
     }
@@ -141,7 +139,7 @@ static void readInput(void) {
         if (c == ESC) mode = MODE_NORMAL;
         if (isprint(c)) {
             drawChar = c;
-            clientPut(c);
+            clientPut(inputColor, c);
         }
         return;
     }
@@ -156,8 +154,8 @@ static void readInput(void) {
         case 'I': insertMode(0, 0); break;
         case 'r': mode = MODE_REPLACE; break;
         case 'R': mode = MODE_DRAW; drawChar = 0; break;
-        case 'x': clientPut(' '); break;
-        case '~': clientPut(inch() & 0x7F); clientMove(1, 0); break;
+        case 'x': clientPut(CH_COLOR(inch()), ' '); break;
+        case '~': clientPut(inputColor, inch() & 0x7F); clientMove(1, 0); break;
 
         case 'h': clientMove(-1,  0); break;
         case 'j': clientMove( 0,  1); break;
@@ -177,23 +175,23 @@ static void readInput(void) {
         case 'B': swapCell(-1,  1); break;
         case 'N': swapCell( 1,  1); break;
 
-        case '`': clientColor(CH_COLOR(inch())); break;
+        case '`': inputColor = CH_COLOR(inch()); break;
 
-        case '1': clientColor(COLOR_RED); break;
-        case '2': clientColor(COLOR_GREEN); break;
-        case '3': clientColor(COLOR_YELLOW); break;
-        case '4': clientColor(COLOR_BLUE); break;
-        case '5': clientColor(COLOR_MAGENTA); break;
-        case '6': clientColor(COLOR_CYAN); break;
-        case '7': clientColor(COLOR_WHITE); break;
+        case '1': colorFg(COLOR_RED); break;
+        case '2': colorFg(COLOR_GREEN); break;
+        case '3': colorFg(COLOR_YELLOW); break;
+        case '4': colorFg(COLOR_BLUE); break;
+        case '5': colorFg(COLOR_MAGENTA); break;
+        case '6': colorFg(COLOR_CYAN); break;
+        case '7': colorFg(COLOR_WHITE); break;
 
-        case '!': clientColor(COLOR_BRIGHT | COLOR_RED); break;
-        case '@': clientColor(COLOR_BRIGHT | COLOR_GREEN); break;
-        case '#': clientColor(COLOR_BRIGHT | COLOR_YELLOW); break;
-        case '$': clientColor(COLOR_BRIGHT | COLOR_BLUE); break;
-        case '%': clientColor(COLOR_BRIGHT | COLOR_MAGENTA); break;
-        case '^': clientColor(COLOR_BRIGHT | COLOR_CYAN); break;
-        case '&': clientColor(COLOR_BRIGHT | COLOR_WHITE); break;
+        case '!': colorFg(COLOR_BRIGHT | COLOR_RED); break;
+        case '@': colorFg(COLOR_BRIGHT | COLOR_GREEN); break;
+        case '#': colorFg(COLOR_BRIGHT | COLOR_YELLOW); break;
+        case '$': colorFg(COLOR_BRIGHT | COLOR_BLUE); break;
+        case '%': colorFg(COLOR_BRIGHT | COLOR_MAGENTA); break;
+        case '^': colorFg(COLOR_BRIGHT | COLOR_CYAN); break;
+        case '&': colorFg(COLOR_BRIGHT | COLOR_WHITE); break;
 
         case KEY_LEFT: clientMove(-1,  0); break;
         case KEY_DOWN: clientMove( 0,  1); break;
@@ -201,7 +199,7 @@ static void readInput(void) {
         case KEY_RIGHT: clientMove( 1,  0); break;
     }
 
-    if (mode == MODE_DRAW && drawChar) clientPut(drawChar);
+    if (mode == MODE_DRAW && drawChar) clientPut(inputColor, drawChar);
 }
 
 static void serverPut(uint8_t x, uint8_t y, uint8_t color, char cell) {
