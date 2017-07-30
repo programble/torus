@@ -13,6 +13,16 @@ exec cc -Wall -Wextra -pedantic $@ -o help $0
 
 static int client;
 
+static uint8_t color = COLOR_WHITE;
+
+static void white(void) {
+    color = COLOR_WHITE;
+}
+
+static void brite(void) {
+    color = COLOR_BRIGHT | COLOR_WHITE;
+}
+
 static void clientMessage(const struct ClientMessage *msg) {
     ssize_t len = send(client, msg, sizeof(*msg), 0);
     if (len < 0) err(EX_IOERR, "send");
@@ -25,15 +35,10 @@ static void clientMove(int8_t dx, int8_t dy) {
     clientMessage(&msg);
 }
 
-static void clientColor(uint8_t color) {
-    struct ClientMessage msg = { .type = CLIENT_COLOR };
-    msg.data.c = color;
-    clientMessage(&msg);
-}
-
 static void clientPut(char cell) {
     struct ClientMessage msg = { .type = CLIENT_PUT };
-    msg.data.p = cell;
+    msg.data.p.color = color;
+    msg.data.p.cell = cell;
     clientMessage(&msg);
 }
 
@@ -62,14 +67,6 @@ static void clear(uint8_t width, uint8_t height) {
         clientMove(0, 1);
     }
     clientMove(-x, -height);
-}
-
-static void white(void) {
-    clientColor(COLOR_WHITE);
-}
-
-static void brite(void) {
-    clientColor(COLOR_BRIGHT | COLOR_WHITE);
 }
 
 static int8_t lineLen;
@@ -165,20 +162,20 @@ int main() {
         enter();
 
         clientMove(13, -6);
-        clientColor(COLOR_RED);     mvPut(0, 0, '1');
-        clientColor(COLOR_GREEN);   mvPut(0, 1, '2');
-        clientColor(COLOR_YELLOW);  mvPut(0, 1, '3');
-        clientColor(COLOR_BLUE);    mvPut(0, 1, '4');
-        clientColor(COLOR_MAGENTA); mvPut(0, 1, '5');
-        clientColor(COLOR_CYAN);    mvPut(0, 1, '6');
-        clientColor(COLOR_WHITE);   mvPut(0, 1, '7');
-        clientColor(COLOR_BRIGHT | COLOR_WHITE);   mvPut(2,  0, '&');
-        clientColor(COLOR_BRIGHT | COLOR_CYAN);    mvPut(0, -1, '^');
-        clientColor(COLOR_BRIGHT | COLOR_MAGENTA); mvPut(0, -1, '%');
-        clientColor(COLOR_BRIGHT | COLOR_BLUE);    mvPut(0, -1, '$');
-        clientColor(COLOR_BRIGHT | COLOR_YELLOW);  mvPut(0, -1, '#');
-        clientColor(COLOR_BRIGHT | COLOR_GREEN);   mvPut(0, -1, '@');
-        clientColor(COLOR_BRIGHT | COLOR_RED);     mvPut(0, -1, '!');
+        color = COLOR_RED;     mvPut(0, 0, '1');
+        color = COLOR_GREEN;   mvPut(0, 1, '2');
+        color = COLOR_YELLOW;  mvPut(0, 1, '3');
+        color = COLOR_BLUE;    mvPut(0, 1, '4');
+        color = COLOR_MAGENTA; mvPut(0, 1, '5');
+        color = COLOR_CYAN;    mvPut(0, 1, '6');
+        color = COLOR_WHITE;   mvPut(0, 1, '7');
+        color = COLOR_BRIGHT | COLOR_WHITE;   mvPut(2,  0, '&');
+        color = COLOR_BRIGHT | COLOR_CYAN;    mvPut(0, -1, '^');
+        color = COLOR_BRIGHT | COLOR_MAGENTA; mvPut(0, -1, '%');
+        color = COLOR_BRIGHT | COLOR_BLUE;    mvPut(0, -1, '$');
+        color = COLOR_BRIGHT | COLOR_YELLOW;  mvPut(0, -1, '#');
+        color = COLOR_BRIGHT | COLOR_GREEN;   mvPut(0, -1, '@');
+        color = COLOR_BRIGHT | COLOR_RED;     mvPut(0, -1, '!');
 
         clientMove(-26, -3);
 
