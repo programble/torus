@@ -2,6 +2,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <time.h>
 
 #define ALIGNED(x) __attribute__((aligned(x)))
 
@@ -25,7 +26,8 @@ enum {
 #define CELL_INIT_Y (CELL_ROWS / 2)
 
 struct Tile {
-    bool present;
+    time_t create;
+    time_t access;
     char cells[CELL_ROWS][CELL_COLS] ALIGNED(16);
     uint8_t colors[CELL_ROWS][CELL_COLS] ALIGNED(16);
 } ALIGNED(4096);

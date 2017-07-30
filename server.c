@@ -18,6 +18,7 @@ exec cc -Wall -Wextra -pedantic $@ -o server $0
 #include <sys/time.h>
 #include <sys/un.h>
 #include <sysexits.h>
+#include <time.h>
 #include <unistd.h>
 
 #include "torus.h"
@@ -37,11 +38,12 @@ static void tilesMap(void) {
 
 static struct Tile *tileGet(uint32_t tileX, uint32_t tileY) {
     struct Tile *tile = &tiles[tileY * TILE_ROWS + tileX];
-    if (!tile->present) {
+    if (!tile->create) {
         memset(tile->cells, ' ', CELLS_SIZE);
         memset(tile->colors, COLOR_WHITE, CELLS_SIZE);
-        tile->present = true;
+        tile->create = time(NULL);
     }
+    tile->access = time(NULL);
     return tile;
 }
 
