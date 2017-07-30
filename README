@@ -8,6 +8,7 @@ C source files are self-compiling, e.g. ./server.c.
     server.c       Maps torus.dat and listens on torus.sock.
     client.c       Curses client.
     help.c         Automated client which redraws a helpful banner.
+    snapshot.sh    Snapshots data file, appropriate for cron.
 
     chroot.sh      Creates chroot tarball.
     sshd_config    Anonymous login to chrooted client.
