@@ -57,6 +57,17 @@ static void colorFg(uint8_t fg) {
     inputColor = (inputColor & 0xF0) | fg;
 }
 
+static void colorBg(uint8_t bg) {
+    inputColor = (inputColor & 0x0F) | (bg << 4);
+}
+
+static void colorInvert(void) {
+    inputColor =
+        (inputColor & 0x08) |
+        ((inputColor & 0x07) << 4) |
+        ((inputColor & 0x70) >> 4);
+}
+
 static enum {
     MODE_NORMAL,
     MODE_INSERT,
@@ -177,21 +188,29 @@ static void readInput(void) {
 
         case '`': inputColor = CH_COLOR(inch()); break;
 
-        case '1': colorFg(COLOR_RED); break;
-        case '2': colorFg(COLOR_GREEN); break;
-        case '3': colorFg(COLOR_YELLOW); break;
-        case '4': colorFg(COLOR_BLUE); break;
+        case '0': colorFg(COLOR_BLACK);   break;
+        case '1': colorFg(COLOR_RED);     break;
+        case '2': colorFg(COLOR_GREEN);   break;
+        case '3': colorFg(COLOR_YELLOW);  break;
+        case '4': colorFg(COLOR_BLUE);    break;
         case '5': colorFg(COLOR_MAGENTA); break;
-        case '6': colorFg(COLOR_CYAN); break;
-        case '7': colorFg(COLOR_WHITE); break;
+        case '6': colorFg(COLOR_CYAN);    break;
+        case '7': colorFg(COLOR_WHITE);   break;
 
-        case '!': colorFg(COLOR_BRIGHT | COLOR_RED); break;
-        case '@': colorFg(COLOR_BRIGHT | COLOR_GREEN); break;
-        case '#': colorFg(COLOR_BRIGHT | COLOR_YELLOW); break;
-        case '$': colorFg(COLOR_BRIGHT | COLOR_BLUE); break;
-        case '%': colorFg(COLOR_BRIGHT | COLOR_MAGENTA); break;
-        case '^': colorFg(COLOR_BRIGHT | COLOR_CYAN); break;
-        case '&': colorFg(COLOR_BRIGHT | COLOR_WHITE); break;
+        case ')': colorBg(COLOR_BLACK);   break;
+        case '!': colorBg(COLOR_RED);     break;
+        case '@': colorBg(COLOR_GREEN);   break;
+        case '#': colorBg(COLOR_YELLOW);  break;
+        case '$': colorBg(COLOR_BLUE);    break;
+        case '%': colorBg(COLOR_MAGENTA); break;
+        case '^': colorBg(COLOR_CYAN);    break;
+        case '&': colorBg(COLOR_WHITE);   break;
+
+        case '*':
+        case '8': inputColor ^= COLOR_BRIGHT; break;
+
+        case '(':
+        case '9': colorInvert(); break;
 
         case KEY_LEFT: clientMove(-1,  0); break;
         case KEY_DOWN: clientMove( 0,  1); break;
