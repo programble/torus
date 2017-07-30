@@ -9,8 +9,5 @@ C source files are self-compiling, e.g. ./server.c.
     client.c       Curses client.
     help.c         Automated client which redraws a helpful banner.
 
-On FreeBSD with TERM=xterm-256color, the client fails to display bright
-colors. Applying termcap.diff sets it equivalent to TERM=xterm.
-
-    patch -p0 -o termcap < termcap.diff
-    cap_mkdb termcap
+    termcap.diff   Patch for bright colors with TERM=xterm-256color.
+    sshd_config    Anonymous login to chrooted client.
