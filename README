@@ -1,0 +1,10 @@
+Welcome to ascii.town!
+
+This software targets FreeBSD and Darwin.
+
+C source files are self-compiling, e.g. ./server.c.
+
+    torus.h        Shared structures and message protocol.
+    server.c       Maps torus.dat and listens on torus.sock.
+    client.c       Curses client.
+    help.c         Automated client which redraws a helpful banner.
