@@ -1,6 +1,7 @@
-#include <stdbool.h>
-#include <stdint.h>
 #include <assert.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 
 #define ALIGNED(x) __attribute__((aligned(x)))
 
@@ -29,6 +30,8 @@ struct Tile {
     uint8_t colors[CELL_ROWS][CELL_COLS] ALIGNED(16);
 } ALIGNED(4096);
 static_assert(sizeof(struct Tile) == 4096, "struct Tile is page-sized");
+static_assert(offsetof(struct Tile, cells) == 16, "stable cells offset");
+static_assert(offsetof(struct Tile, colors) == 2016, "stable colors offset");
 
 #define TILE_ROWS (512)
 #define TILE_COLS (512)
