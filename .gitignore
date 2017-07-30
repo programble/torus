@@ -1,5 +1,7 @@
+chroot.tar
 client
 help
+root
 server
 torus.dat
 torus.sock
