@@ -44,6 +44,7 @@ static struct Tile *tileGet(uint32_t tileX, uint32_t tileY) {
         tile->create = time(NULL);
     }
     tile->access = time(NULL);
+    tile->accessCount++;
     return tile;
 }
 

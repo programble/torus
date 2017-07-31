@@ -30,6 +30,7 @@ struct Tile {
     time_t access;
     char cells[CELL_ROWS][CELL_COLS] ALIGNED(16);
     uint8_t colors[CELL_ROWS][CELL_COLS] ALIGNED(16);
+    uint32_t accessCount;
 } ALIGNED(4096);
 static_assert(sizeof(struct Tile) == 4096, "struct Tile is page-sized");
 static_assert(offsetof(struct Tile, cells) == 16, "stable cells offset");
