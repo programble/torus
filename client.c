@@ -104,6 +104,8 @@ static void swapCell(int8_t dx, int8_t dy) {
     clientPut(aColor, aCell);
 }
 
+static int8_t moveSpeed = 1;
+
 static void readInput(void) {
     int c = getch();
 
@@ -168,14 +170,17 @@ static void readInput(void) {
         case 'x': clientPut(CH_COLOR(inch()), ' '); break;
         case '~': clientPut(inputColor, inch() & 0x7F); clientMove(1, 0); break;
 
-        case 'h': clientMove(-1,  0); break;
-        case 'j': clientMove( 0,  1); break;
-        case 'k': clientMove( 0, -1); break;
-        case 'l': clientMove( 1,  0); break;
-        case 'y': clientMove(-1, -1); break;
-        case 'u': clientMove( 1, -1); break;
-        case 'b': clientMove(-1,  1); break;
-        case 'n': clientMove( 1,  1); break;
+        case '[': if (moveSpeed > 1) moveSpeed--; break;
+        case ']': if (moveSpeed < 4) moveSpeed++; break;
+
+        case 'h': clientMove(-moveSpeed,          0); break;
+        case 'j': clientMove(         0,  moveSpeed); break;
+        case 'k': clientMove(         0, -moveSpeed); break;
+        case 'l': clientMove( moveSpeed,          0); break;
+        case 'y': clientMove(-moveSpeed, -moveSpeed); break;
+        case 'u': clientMove( moveSpeed, -moveSpeed); break;
+        case 'b': clientMove(-moveSpeed,  moveSpeed); break;
+        case 'n': clientMove( moveSpeed,  moveSpeed); break;
 
         case 'H': swapCell(-1,  0); break;
         case 'J': swapCell( 0,  1); break;
