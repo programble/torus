@@ -129,13 +129,17 @@ static bool clientCast(struct Client *origin, const struct ServerMessage *msg) {
     return success;
 }
 
-static bool clientMove(struct Client *client, int8_t dx, uint8_t dy) {
+static bool clientMove(struct Client *client, int8_t dx, int8_t dy) {
     struct Client old = *client;
+
+    if (dx > CELL_COLS - client->cellX) dx = CELL_COLS - client->cellX;
+    if (dx < -client->cellX - 1)        dx = -client->cellX - 1;
+    if (dy > CELL_ROWS - client->cellY) dy = CELL_ROWS - client->cellY;
+    if (dy < -client->cellY - 1)        dy = -client->cellY - 1;
 
     client->cellX += dx;
     client->cellY += dy;
 
-    // TODO: Handle moves greater than 1 in either direction.
     if (client->cellX == CELL_COLS) { client->tileX++; client->cellX = 0; }
     if (client->cellX == UINT8_MAX) { client->tileX--; client->cellX = CELL_COLS - 1; }
     if (client->cellY == CELL_ROWS) { client->tileY++; client->cellY = 0; }
