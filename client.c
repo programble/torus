@@ -54,7 +54,7 @@ static void clientPut(uint8_t color, char cell) {
 static uint8_t inputColor = COLOR_WHITE;
 
 static void colorFg(uint8_t fg) {
-    inputColor = (inputColor & 0xF0) | fg;
+    inputColor = (inputColor & 0xF8) | fg;
 }
 
 static void colorBg(uint8_t bg) {
