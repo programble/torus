@@ -1,9 +1,9 @@
 #!/bin/sh
 set -e -u -x
 
-./server.c
-./client.c
-./help.c
+./server.c -O3
+./client.c -O3
+./help.c -O3
 
 if [ ! -f termcap.db ]; then
     patch -p0 -o termcap < termcap.diff
