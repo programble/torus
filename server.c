@@ -109,8 +109,9 @@ static void clientCast(const struct Client *origin, const struct ServerMessage *
         if (client->tileY != origin->tileY) continue;
 
         if (!clientSend(client, msg)) {
+            struct Client *dead = client;
             client = client->next;
-            clientRemove(client);
+            clientRemove(dead);
             if (!client) break;
         }
     }
