@@ -35,6 +35,14 @@ static void tilesMap(void) {
     tiles = mmap(NULL, TILES_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     if (tiles == MAP_FAILED) err(EX_OSERR, "mmap");
 
+    error = madvise(tiles, TILES_SIZE, MADV_RANDOM);
+    if (error) err(EX_OSERR, "madvise");
+
+#ifdef MADV_NOSYNC
+    error = madvise(tiles, TILES_SIZE, MADV_NOSYNC);
+    if (error) err(EX_OSERR, "madvise");
+#endif
+
 #ifdef MADV_NOCORE
     error = madvise(tiles, TILES_SIZE, MADV_NOCORE);
     if (error) err(EX_OSERR, "madvise");
