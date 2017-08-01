@@ -47,6 +47,7 @@ enum ServerMessageType {
     SERVER_TILE,
     SERVER_MOVE,
     SERVER_PUT,
+    SERVER_CURSOR,
 };
 
 struct ServerMessage {
@@ -62,8 +63,16 @@ struct ServerMessage {
             uint8_t color;
             char cell;
         } p;
+        struct {
+            uint8_t oldCellX;
+            uint8_t oldCellY;
+            uint8_t newCellX;
+            uint8_t newCellY;
+        } c;
     } data;
 };
+
+#define CURSOR_NONE UINT8_MAX
 
 enum ClientMessageType {
     CLIENT_MOVE,

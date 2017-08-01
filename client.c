@@ -245,6 +245,17 @@ static void serverTile(void) {
     }
 }
 
+static void serverCursor(uint8_t oldX, uint8_t oldY, uint8_t newX, uint8_t newY) {
+    if (oldX != CURSOR_NONE) {
+        move(oldY, oldX);
+        addch(inch() & ~A_REVERSE);
+    }
+    if (newX != CURSOR_NONE) {
+        move(newY, newX);
+        addch(inch() | A_REVERSE);
+    }
+}
+
 static void readMessage(void) {
     struct ServerMessage msg;
     ssize_t len = recv(client, &msg, sizeof(msg), 0);
@@ -270,6 +281,15 @@ static void readMessage(void) {
                 msg.data.p.cellY,
                 msg.data.p.color,
                 msg.data.p.cell
+            );
+            break;
+
+        case SERVER_CURSOR:
+            serverCursor(
+                msg.data.c.oldCellX,
+                msg.data.c.oldCellY,
+                msg.data.c.newCellX,
+                msg.data.c.newCellY
             );
             break;
 

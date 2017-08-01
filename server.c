@@ -82,52 +82,66 @@ static struct Client *clientAdd(int fd) {
     return client;
 }
 
-static void clientRemove(struct Client *client) {
-    if (client->prev) client->prev->next = client->next;
-    if (client->next) client->next->prev = client->prev;
-    if (clientHead == client) clientHead = client->next;
-    close(client->fd);
-    free(client);
-}
+static void clientRemove(struct Client *client);
 
-static bool clientSend(struct Client *client, const struct ServerMessage *msg) {
+static bool clientSend(const struct Client *client, const struct ServerMessage *msg) {
     ssize_t len = send(client->fd, msg, sizeof(*msg), 0);
-    if (len < 0) {
-        clientRemove(client);
-        return false;
-    }
+    if (len < 0) return false;
 
     if (msg->type == SERVER_TILE) {
         struct Tile *tile = tileGet(client->tileX, client->tileY);
         len = send(client->fd, tile, sizeof(*tile), 0);
-        if (len < 0) {
-            clientRemove(client);
-            return false;
-        }
+        if (len < 0) return false;
     }
 
     return true;
 }
 
-static bool clientCast(struct Client *origin, const struct ServerMessage *msg) {
-    uint32_t tileX = origin->tileX;
-    uint32_t tileY = origin->tileY;
-
-    bool success = clientSend(origin, msg);
-
+static void clientCast(const struct Client *origin, const struct ServerMessage *msg) {
     for (struct Client *client = clientHead; client; client = client->next) {
         if (client == origin) continue;
-        if (client->tileX != tileX) continue;
-        if (client->tileY != tileY) continue;
+        if (client->tileX != origin->tileX) continue;
+        if (client->tileY != origin->tileY) continue;
 
-        struct Client *next = client->next;
         if (!clientSend(client, msg)) {
-            client = next;
+            client = client->next;
+            clientRemove(client);
             if (!client) break;
         }
     }
+}
 
-    return success;
+static void clientRemove(struct Client *client) {
+    if (client->prev) client->prev->next = client->next;
+    if (client->next) client->next->prev = client->prev;
+    if (clientHead == client) clientHead = client->next;
+
+    struct ServerMessage msg = { .type = SERVER_CURSOR };
+    msg.data.c.oldCellX = client->cellX;
+    msg.data.c.oldCellY = client->cellY;
+    msg.data.c.newCellX = CURSOR_NONE;
+    msg.data.c.newCellX = CURSOR_NONE;
+    clientCast(client, &msg);
+
+    close(client->fd);
+    free(client);
+}
+
+static bool clientCursors(const struct Client *client) {
+    struct ServerMessage msg = { .type = SERVER_CURSOR };
+    msg.data.c.oldCellX = CURSOR_NONE;
+    msg.data.c.oldCellY = CURSOR_NONE;
+
+    for (struct Client *friend = clientHead; friend; friend = friend->next) {
+        if (friend == client) continue;
+        if (friend->tileX != client->tileX) continue;
+        if (friend->tileY != client->tileY) continue;
+
+        msg.data.c.newCellX = friend->cellX;
+        msg.data.c.newCellY = friend->cellY;
+        if (!clientSend(client, &msg)) return false;
+    }
+    return true;
 }
 
 static bool clientMove(struct Client *client, int8_t dx, int8_t dy) {
@@ -158,13 +172,35 @@ static bool clientMove(struct Client *client, int8_t dx, int8_t dy) {
 
     if (client->tileX != old.tileX || client->tileY != old.tileY) {
         msg.type = SERVER_TILE;
-        return clientSend(client, &msg);
+        if (!clientSend(client, &msg)) return false;
+        if (!clientCursors(client)) return false;
+
+        msg.type = SERVER_CURSOR;
+        msg.data.c.oldCellX = old.cellX;
+        msg.data.c.oldCellY = old.cellY;
+        msg.data.c.newCellX = CURSOR_NONE;
+        msg.data.c.newCellX = CURSOR_NONE;
+        clientCast(&old, &msg);
+
+        msg.data.c.oldCellX = CURSOR_NONE;
+        msg.data.c.oldCellY = CURSOR_NONE;
+        msg.data.c.newCellX = client->cellX;
+        msg.data.c.newCellY = client->cellY;
+        clientCast(client, &msg);
+
+    } else {
+        msg.type = SERVER_CURSOR;
+        msg.data.c.oldCellX = old.cellX;
+        msg.data.c.oldCellY = old.cellY;
+        msg.data.c.newCellX = client->cellX;
+        msg.data.c.newCellY = client->cellY;
+        clientCast(client, &msg);
     }
 
     return true;
 }
 
-static bool clientPut(struct Client *client, uint8_t color, char cell) {
+static bool clientPut(const struct Client *client, uint8_t color, char cell) {
     struct Tile *tile = tileGet(client->tileX, client->tileY);
     tile->colors[client->cellY][client->cellX] = color;
     tile->cells[client->cellY][client->cellX] = cell;
@@ -174,7 +210,10 @@ static bool clientPut(struct Client *client, uint8_t color, char cell) {
     msg.data.p.cellY = client->cellY;
     msg.data.p.color = color;
     msg.data.p.cell = cell;
-    return clientCast(client, &msg);
+
+    bool success = clientSend(client, &msg);
+    clientCast(client, &msg);
+    return success;
 }
 
 int main() {
@@ -238,8 +277,13 @@ int main() {
             if (nevents < 0) err(EX_OSERR, "kevent");
 
             struct ServerMessage msg = { .type = SERVER_TILE };
-            if (!clientSend(client, &msg)) continue;
-            clientMove(client, 0, 0);
+            if (
+                !clientSend(client, &msg) ||
+                !clientMove(client, 0, 0) ||
+                !clientCursors(client)
+            ) {
+                clientRemove(client);
+            }
 
             continue;
         }
@@ -257,17 +301,15 @@ int main() {
             continue;
         }
 
+        bool success = false;
         switch (msg.type) {
             case CLIENT_MOVE:
-                clientMove(client, msg.data.m.dx, msg.data.m.dy);
+                success = clientMove(client, msg.data.m.dx, msg.data.m.dy);
                 break;
-
             case CLIENT_PUT:
-                clientPut(client, msg.data.p.color, msg.data.p.cell);
+                success = clientPut(client, msg.data.p.color, msg.data.p.cell);
                 break;
-
-            default:
-                clientRemove(client);
         }
+        if (!success) clientRemove(client);
     }
 }
