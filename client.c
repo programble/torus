@@ -130,9 +130,7 @@ static void readInput(void) {
             insert.len--;
         } else if (c == '\n') {
             clientMove(insert.dy, insert.dx);
-            for (uint8_t i = 0; i < insert.len; ++i) {
-                clientMove(-insert.dx, -insert.dy);
-            }
+            clientMove(-insert.dx * insert.len, -insert.dy * insert.len);
             insert.len = 0;
         } else if (isprint(c)) {
             clientPut(inputColor, c);
