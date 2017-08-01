@@ -34,6 +34,11 @@ static void tilesMap(void) {
 
     tiles = mmap(NULL, TILES_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     if (tiles == MAP_FAILED) err(EX_OSERR, "mmap");
+
+#ifdef MADV_NOCORE
+    error = madvise(tiles, TILES_SIZE, MADV_NOCORE);
+    if (error) err(EX_OSERR, "madvise");
+#endif
 }
 
 static struct Tile *tileGet(uint32_t tileX, uint32_t tileY) {
