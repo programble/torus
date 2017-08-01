@@ -29,16 +29,18 @@ static void clientMessage(const struct ClientMessage *msg) {
 }
 
 static void clientMove(int8_t dx, int8_t dy) {
-    struct ClientMessage msg = { .type = CLIENT_MOVE };
-    msg.data.m.dx = dx;
-    msg.data.m.dy = dy;
+    struct ClientMessage msg = {
+        .type = CLIENT_MOVE,
+        .data.m = { .dx = dx, .dy = dy },
+    };
     clientMessage(&msg);
 }
 
 static void clientPut(char cell) {
-    struct ClientMessage msg = { .type = CLIENT_PUT };
-    msg.data.p.color = color;
-    msg.data.p.cell = cell;
+    struct ClientMessage msg = {
+        .type = CLIENT_PUT,
+        .data.p = { .color = color, .cell = cell },
+    };
     clientMessage(&msg);
 }
 

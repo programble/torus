@@ -116,11 +116,13 @@ static void clientRemove(struct Client *client) {
     if (client->next) client->next->prev = client->prev;
     if (clientHead == client) clientHead = client->next;
 
-    struct ServerMessage msg = { .type = SERVER_CURSOR };
-    msg.data.c.oldCellX = client->cellX;
-    msg.data.c.oldCellY = client->cellY;
-    msg.data.c.newCellX = CURSOR_NONE;
-    msg.data.c.newCellX = CURSOR_NONE;
+    struct ServerMessage msg = {
+        .type = SERVER_CURSOR,
+        .data.c = {
+            .oldCellX = client->cellX, .oldCellY = client->cellY,
+            .newCellX = CURSOR_NONE,   .newCellY = CURSOR_NONE,
+        },
+    };
     clientCast(client, &msg);
 
     close(client->fd);
@@ -128,9 +130,10 @@ static void clientRemove(struct Client *client) {
 }
 
 static bool clientCursors(const struct Client *client) {
-    struct ServerMessage msg = { .type = SERVER_CURSOR };
-    msg.data.c.oldCellX = CURSOR_NONE;
-    msg.data.c.oldCellY = CURSOR_NONE;
+    struct ServerMessage msg = {
+        .type = SERVER_CURSOR,
+        .data.c = { .oldCellX = CURSOR_NONE, .oldCellY = CURSOR_NONE },
+    };
 
     for (struct Client *friend = clientHead; friend; friend = friend->next) {
         if (friend == client) continue;
@@ -165,35 +168,44 @@ static bool clientMove(struct Client *client, int8_t dx, int8_t dy) {
     if (client->tileY == TILE_ROWS)  client->tileY = 0;
     if (client->tileY == UINT32_MAX) client->tileY = TILE_ROWS - 1;
 
-    struct ServerMessage msg = { .type = SERVER_MOVE };
-    msg.data.m.cellX = client->cellX;
-    msg.data.m.cellY = client->cellY;
+    struct ServerMessage msg = {
+        .type = SERVER_MOVE,
+        .data.m = { .cellX = client->cellX, .cellY = client->cellY },
+    };
     if (!clientSend(client, &msg)) return false;
 
     if (client->tileX != old.tileX || client->tileY != old.tileY) {
         msg.type = SERVER_TILE;
         if (!clientSend(client, &msg)) return false;
+
         if (!clientCursors(client)) return false;
 
-        msg.type = SERVER_CURSOR;
-        msg.data.c.oldCellX = old.cellX;
-        msg.data.c.oldCellY = old.cellY;
-        msg.data.c.newCellX = CURSOR_NONE;
-        msg.data.c.newCellX = CURSOR_NONE;
+        msg = (struct ServerMessage) {
+            .type = SERVER_CURSOR,
+            .data.c = {
+                .oldCellX = old.cellX,   .oldCellY = old.cellY,
+                .newCellX = CURSOR_NONE, .newCellY = CURSOR_NONE,
+            },
+        };
         clientCast(&old, &msg);
 
-        msg.data.c.oldCellX = CURSOR_NONE;
-        msg.data.c.oldCellY = CURSOR_NONE;
-        msg.data.c.newCellX = client->cellX;
-        msg.data.c.newCellY = client->cellY;
+        msg = (struct ServerMessage) {
+            .type = SERVER_CURSOR,
+            .data.c = {
+                .oldCellX = CURSOR_NONE,   .oldCellY = CURSOR_NONE,
+                .newCellX = client->cellX, .newCellY = client->cellY,
+            },
+        };
         clientCast(client, &msg);
 
     } else {
-        msg.type = SERVER_CURSOR;
-        msg.data.c.oldCellX = old.cellX;
-        msg.data.c.oldCellY = old.cellY;
-        msg.data.c.newCellX = client->cellX;
-        msg.data.c.newCellY = client->cellY;
+        msg = (struct ServerMessage) {
+            .type = SERVER_CURSOR,
+            .data.c = {
+                .oldCellX = old.cellX,     .oldCellY = old.cellY,
+                .newCellX = client->cellX, .newCellY = client->cellY,
+            },
+        };
         clientCast(client, &msg);
     }
 
@@ -205,12 +217,15 @@ static bool clientPut(const struct Client *client, uint8_t color, char cell) {
     tile->colors[client->cellY][client->cellX] = color;
     tile->cells[client->cellY][client->cellX] = cell;
 
-    struct ServerMessage msg = { .type = SERVER_PUT };
-    msg.data.p.cellX = client->cellX;
-    msg.data.p.cellY = client->cellY;
-    msg.data.p.color = color;
-    msg.data.p.cell = cell;
-
+    struct ServerMessage msg = {
+        .type = SERVER_PUT,
+        .data.p = {
+            .cellX = client->cellX,
+            .cellY = client->cellY,
+            .color = color,
+            .cell = cell,
+        },
+    };
     bool success = clientSend(client, &msg);
     clientCast(client, &msg);
     return success;
