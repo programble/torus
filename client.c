@@ -80,7 +80,7 @@ static struct {
     int8_t dx;
     int8_t dy;
     uint8_t len;
-} insert;
+} insert = { .dx = 1 };
 static char drawChar;
 
 static void insertMode(int8_t dx, int8_t dy) {
@@ -168,7 +168,11 @@ static void readInput(void) {
         case 'r': mode = MODE_REPLACE; break;
         case 'R': mode = MODE_DRAW; drawChar = 0; break;
         case 'x': clientPut(CH_COLOR(inch()), ' '); break;
-        case '~': clientPut(inputColor, inch() & 0x7F); clientMove(1, 0); break;
+
+        case '~':
+            clientPut(inputColor, inch() & 0x7F);
+            clientMove(insert.dx, insert.dy);
+            break;
 
         case '[': if (moveSpeed > 1) moveSpeed--; break;
         case ']': if (moveSpeed < 4) moveSpeed++; break;
