@@ -143,7 +143,7 @@ static void readInput(void) {
     }
 
     if (mode == MODE_REPLACE) {
-        if (isprint(c)) clientPut(inputColor, c);
+        if (isprint(c)) clientPut(CH_COLOR(inch()), c);
         mode = MODE_NORMAL;
         return;
     }
