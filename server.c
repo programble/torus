@@ -56,8 +56,20 @@ static struct Tile *tileGet(uint32_t tileX, uint32_t tileY) {
         memset(tile->colors, COLOR_WHITE, CELLS_SIZE);
         tile->create = time(NULL);
     }
+    return tile;
+}
+
+static struct Tile *tileAccess(uint32_t tileX, uint32_t tileY) {
+    struct Tile *tile = tileGet(tileX, tileY);
     tile->access = time(NULL);
     tile->accessCount++;
+    return tile;
+}
+
+static struct Tile *tileModify(uint32_t tileX, uint32_t tileY) {
+    struct Tile *tile = tileGet(tileX, tileY);
+    tile->modify = time(NULL);
+    tile->modifyCount++;
     return tile;
 }
 
@@ -102,7 +114,7 @@ static bool clientSend(const struct Client *client, const struct ServerMessage *
     if (len < 0) return false;
 
     if (msg->type == SERVER_TILE) {
-        struct Tile *tile = tileGet(client->tileX, client->tileY);
+        struct Tile *tile = tileAccess(client->tileX, client->tileY);
         len = send(client->fd, tile, sizeof(*tile), 0);
         if (len < 0) return false;
     }
@@ -227,7 +239,7 @@ static bool clientMove(struct Client *client, int8_t dx, int8_t dy) {
 }
 
 static bool clientPut(const struct Client *client, uint8_t color, char cell) {
-    struct Tile *tile = tileGet(client->tileX, client->tileY);
+    struct Tile *tile = tileModify(client->tileX, client->tileY);
     tile->colors[client->cellY][client->cellX] = color;
     tile->cells[client->cellY][client->cellX] = cell;
 
