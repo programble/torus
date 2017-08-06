@@ -13,16 +13,6 @@ exec cc -Wall -Wextra -pedantic $@ -o help $0
 
 static int client;
 
-static uint8_t color = COLOR_WHITE;
-
-static void white(void) {
-    color = COLOR_WHITE;
-}
-
-static void brite(void) {
-    color = COLOR_BRIGHT | COLOR_WHITE;
-}
-
 static void clientMessage(const struct ClientMessage *msg) {
     ssize_t len = send(client, msg, sizeof(*msg), 0);
     if (len < 0) err(EX_IOERR, "send");
@@ -36,7 +26,7 @@ static void clientMove(int8_t dx, int8_t dy) {
     clientMessage(&msg);
 }
 
-static void clientPut(char cell) {
+static void clientPut(uint8_t color, char cell) {
     struct ClientMessage msg = {
         .type = CLIENT_PUT,
         .data.p = { .color = color, .cell = cell },
@@ -44,54 +34,45 @@ static void clientPut(char cell) {
     clientMessage(&msg);
 }
 
-#define DELAY (100000)
+#define DELAY (50000)
 
-static void clear(uint8_t width, uint8_t height) {
-    uint8_t x = 0;
-    for (uint8_t y = 0; y < height; ++y) {
-        if (x) {
-            for (; x > 0; --x) {
-                clientPut(' ');
-                clientMove(-1, 0);
-                usleep(DELAY / 10);
-            }
-            clientPut(' ');
-            x = 0;
-        } else {
-            for (; x < width; ++x) {
-                clientPut(' ');
-                clientMove(1, 0);
-                usleep(DELAY / 10);
-            }
-            clientPut(' ');
-            x = width;
-        }
-        clientMove(0, 1);
-    }
-    clientMove(-x, -height);
+#define R (COLOR_RED)
+#define G (COLOR_GREEN)
+#define Y (COLOR_YELLOW)
+#define B (COLOR_BLUE)
+#define M (COLOR_MAGENTA)
+#define C (COLOR_CYAN)
+#define W (COLOR_WHITE)
+#define I (COLOR_BRIGHT | COLOR_WHITE)
+
+static void h(void) { clientMove(-1,  0); usleep(DELAY); }
+static void j(void) { clientMove( 0,  1); usleep(DELAY); }
+static void k(void) { clientMove( 0, -1); usleep(DELAY); }
+static void l(void) { clientMove( 1,  0); usleep(DELAY); }
+static void y(void) { clientMove(-1, -1); usleep(DELAY); }
+static void u(void) { clientMove( 1, -1); usleep(DELAY); }
+static void b(void) { clientMove(-1,  1); usleep(DELAY); }
+static void n(void) { clientMove( 1,  1); usleep(DELAY); }
+
+static void p(uint8_t color, char cell) {
+    clientPut(color, cell);
+    usleep(DELAY);
 }
 
-static int8_t lineLen;
+static uint8_t len;
 
-static void string(const char *str) {
-    for (; *str; ++str) {
-        clientPut(*str);
+static void s(uint8_t color, const char *str) {
+    for (; *str; ++len, ++str) {
+        clientPut(color, *str);
         clientMove(1, 0);
-        lineLen++;
         usleep(DELAY);
     }
 }
 
-static void enter(void) {
-    clientMove(-lineLen, 1);
-    lineLen = 0;
+static void r(void) {
+    clientMove(-len, 1);
     usleep(DELAY);
-}
-
-static void mvPut(int8_t dx, int8_t dy, char cell) {
-    clientMove(dx, dy);
-    clientPut(cell);
-    usleep(DELAY);
+    len = 0;
 }
 
 int main() {
@@ -118,76 +99,72 @@ int main() {
     }
 
     clientMove(-CELL_INIT_X, -CELL_INIT_Y);
+    clientMove(28, 0);
 
     for (;;) {
-        clear(28, 11);
-        clientMove(2, 1);
+        for (int i = 0; i < 10; ++i) {
+            clientMove(0, 1);
+            usleep(DELAY / 5);
+        }
+        for (int i = 0; i < 11; ++i) {
+            for (int j = 0; j < 28; ++j) {
+                clientPut(W, ' ');
+                if (i % 2) clientMove(1, 0);
+                else clientMove(-1, 0);
+                usleep(DELAY / 5);
+            }
+            clientPut(W, ' ');
+            if (i != 10) clientMove(0, -1);
+            usleep(DELAY / 5);
+        }
 
-        white(); string("Welcome to ");
-        brite(); string("ascii.town");
-        white(); string("!");
-        enter();
+        j(); l(); l();
+        s(W, "Welcome to "); s(I, "ascii.town"); s(W, "!"); r();
+        r(); r();
 
-        white(); mvPut( 2,  4, 'o');
-        white(); mvPut( 1,  0, '-');
-        brite(); mvPut( 1,  0, 'l');
-        white(); mvPut(-1,  1, '\\');
-        brite(); mvPut( 1,  1, 'n');
-        white(); mvPut(-2, -1, '|');
-        brite(); mvPut( 0,  1, 'j');
-        white(); mvPut(-1, -1, '/');
-        brite(); mvPut(-1,  1, 'b');
-        white(); mvPut( 1, -2, '-');
-        brite(); mvPut(-1,  0, 'h');
-        white(); mvPut( 1, -1, '\\');
-        brite(); mvPut(-1, -1, 'y');
-        white(); mvPut( 2,  1, '|');
-        brite(); mvPut( 0, -1, 'k');
-        white(); mvPut( 1,  1, '/');
-        brite(); mvPut( 1, -1, 'u');
+        n(); n(); s(W, "o-"); s(I, "l");
+        h(); b(); p(W, '\\'); n(); p(I, 'n');
+        y(); h(); p(W, '|'); j(); p(I, 'j');
+        y(); p(W, '/'); b(); p(I, 'b');
+        k(); u(); p(W, '-'); h(); p(I, 'h');
+        u(); p(W, '\\'); y(); p(I, 'y');
+        n(); l(); p(W, '|'); k(); p(I, 'k');
+        n(); p(W, '/');  u(); p(I, 'u');
 
-        clientMove(5, -1);
-        brite(); string("q");
-        white(); string(" quit");
-        enter();
-        brite(); string("i");
-        white(); string(" insert");
-        enter();
-        brite(); string("r");
-        white(); string(" replace");
-        enter();
-        brite(); string("R");
-        white(); string(" draw");
-        enter();
-        brite(); string("~");
-        white(); string(" color");
-        enter();
-        brite(); string("`");
-        white(); string(" pipette");
-        enter();
-        brite(); string("*");
-        white(); string(" bright");
-        enter();
+        u(); s(W, "    "); len = 0;
 
-        clientMove(13, -7);
-        color = COLOR_RED;     mvPut(0, 0, '1');
-        color = COLOR_GREEN;   mvPut(0, 1, '2');
-        color = COLOR_YELLOW;  mvPut(0, 1, '3');
-        color = COLOR_BLUE;    mvPut(0, 1, '4');
-        color = COLOR_MAGENTA; mvPut(0, 1, '5');
-        color = COLOR_CYAN;    mvPut(0, 1, '6');
-        color = COLOR_WHITE;   mvPut(0, 1, '7');
-        color = COLOR_WHITE   << 4; mvPut(2,  0, '&');
-        color = COLOR_CYAN    << 4; mvPut(0, -1, '^');
-        color = COLOR_MAGENTA << 4; mvPut(0, -1, '%');
-        color = COLOR_BLUE    << 4; mvPut(0, -1, '$');
-        color = COLOR_YELLOW  << 4; mvPut(0, -1, '#');
-        color = COLOR_GREEN   << 4; mvPut(0, -1, '@');
-        color = COLOR_RED     << 4; mvPut(0, -1, '!');
+        s(I, "q "); s(W, "quit");    r();
+        s(I, "i "); s(W, "insert");  r();
+        s(I, "r "); s(W, "replace"); r();
+        s(I, "R "); s(W, "draw");    r();
+        s(I, "~ "); s(W, "color");   r();
+        s(I, "` "); s(W, "pipette"); r();
+        s(I, "* "); s(W, "bright");
 
-        clientMove(-26, -3);
-        color = COLOR_WHITE;
+        s(W, "     "); len = 0;
+
+        clientPut(W, '7'); k();
+        clientPut(C, '6'); k();
+        clientPut(M, '5'); k();
+        clientPut(B, '4'); k();
+        clientPut(Y, '3'); k();
+        clientPut(G, '2'); k();
+        clientPut(R, '1'); k();
+
+        l(); n();
+
+        clientPut(R << 4, '!'); j();
+        clientPut(G << 4, '@'); j();
+        clientPut(Y << 4, '#'); j();
+        clientPut(B << 4, '$'); j();
+        clientPut(M << 4, '%'); j();
+        clientPut(C << 4, '^'); j();
+        clientPut(W << 4, '&'); j();
+
+        h(); k(); k(); k(); k(); k(); k(); k(); k(); k(); h();
 
         sleep(30);
+
+        u(); l(); l(); l();
     }
 }
