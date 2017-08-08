@@ -260,8 +260,6 @@ static bool clientPut(const struct Client *client, uint8_t color, char cell) {
 int main() {
     int error;
 
-    signal(SIGPIPE, SIG_IGN);
-
     tilesMap();
 
     int server = socket(PF_LOCAL, SOCK_STREAM, 0);
@@ -303,6 +301,10 @@ int main() {
             int fd = accept(server, NULL, NULL);
             if (fd < 0) err(EX_IOERR, "accept");
             fcntl(fd, F_SETFL, O_NONBLOCK);
+
+            int on = 1;
+            error = setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, &on, sizeof(on));
+            if (error) err(EX_IOERR, "setsockopt");
 
             struct Client *client = clientAdd(fd);
 
