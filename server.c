@@ -297,62 +297,56 @@ int main() {
         if (nevents < 0) err(EX_IOERR, "kevent");
         if (!nevents) continue;
 
-        if (!event.udata) {
-            int fd = accept(server, NULL, NULL);
-            if (fd < 0) err(EX_IOERR, "accept");
-            fcntl(fd, F_SETFL, O_NONBLOCK);
-
-            int on = 1;
-            error = setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, &on, sizeof(on));
-            if (error) err(EX_IOERR, "setsockopt");
-
-            struct Client *client = clientAdd(fd);
-
-            struct kevent event = {
-                .ident = fd,
-                .filter = EVFILT_READ,
-                .flags = EV_ADD,
-                .fflags = 0,
-                .data = 0,
-                .udata = client,
-            };
-            nevents = kevent(kq, &event, 1, NULL, 0, NULL);
-            if (nevents < 0) err(EX_OSERR, "kevent");
-
-            struct ServerMessage msg = { .type = SERVER_TILE };
-            if (
-                !clientSend(client, &msg) ||
-                !clientMove(client, 0, 0) ||
-                !clientCursors(client)
-            ) {
+        if (event.udata) {
+            struct Client *client = event.udata;
+            if (event.flags & EV_EOF) {
                 clientRemove(client);
+                continue;
             }
 
-            continue;
-        }
+            struct ClientMessage msg;
+            ssize_t len = recv(client->fd, &msg, sizeof(msg), 0);
+            if (len != sizeof(msg)) {
+                clientRemove(client);
+                continue;
+            }
 
-        struct Client *client = event.udata;
-        if (event.flags & EV_EOF) {
-            clientRemove(client);
-            continue;
-        }
-
-        struct ClientMessage msg;
-        ssize_t len = recv(client->fd, &msg, sizeof(msg), 0);
-        if (len != sizeof(msg)) {
-            clientRemove(client);
-            continue;
-        }
-
-        bool success = false;
-        switch (msg.type) {
-            case CLIENT_MOVE:
+            bool success = false;
+            if (msg.type == CLIENT_MOVE) {
                 success = clientMove(client, msg.data.m.dx, msg.data.m.dy);
-                break;
-            case CLIENT_PUT:
+            } else if (msg.type == CLIENT_PUT) {
                 success = clientPut(client, msg.data.p.color, msg.data.p.cell);
-                break;
+            }
+            if (!success) clientRemove(client);
+
+            continue;
         }
+
+        int fd = accept(server, NULL, NULL);
+        if (fd < 0) err(EX_IOERR, "accept");
+        fcntl(fd, F_SETFL, O_NONBLOCK);
+
+        int on = 1;
+        error = setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, &on, sizeof(on));
+        if (error) err(EX_IOERR, "setsockopt");
+
+        struct Client *client = clientAdd(fd);
+
+        struct kevent event = {
+            .ident = fd,
+            .filter = EVFILT_READ,
+            .flags = EV_ADD,
+            .fflags = 0,
+            .data = 0,
+            .udata = client,
+        };
+        nevents = kevent(kq, &event, 1, NULL, 0, NULL);
+        if (nevents < 0) err(EX_OSERR, "kevent");
+
+        struct ServerMessage msg = { .type = SERVER_TILE };
+        bool success = clientSend(client, &msg)
+            && clientMove(client, 0, 0)
+            && clientCursors(client);
         if (!success) clientRemove(client);
     }
 }
