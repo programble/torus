@@ -74,6 +74,7 @@ static enum {
     MODE_NORMAL,
     MODE_INSERT,
     MODE_REPLACE,
+    MODE_PUT,
     MODE_DRAW,
 } mode;
 static struct {
@@ -148,6 +149,12 @@ static void readInput(void) {
         return;
     }
 
+    if (mode == MODE_PUT) {
+        if (isprint(c)) clientPut(inputColor, c);
+        mode = MODE_NORMAL;
+        return;
+    }
+
     if (mode == MODE_DRAW && !drawChar) {
         if (c == ESC) mode = MODE_NORMAL;
         if (isprint(c)) {
@@ -166,6 +173,7 @@ static void readInput(void) {
         case 'i': insertMode(1, 0); break;
         case 'I': insertMode(0, 0); break;
         case 'r': mode = MODE_REPLACE; break;
+        case 'p': mode = MODE_PUT; break;
         case 'R': mode = MODE_DRAW; drawChar = 0; break;
         case 'x': clientPut(CH_COLOR(inch()), ' '); break;
 
