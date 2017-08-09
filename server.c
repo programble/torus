@@ -38,11 +38,6 @@ static void tilesMap(void) {
     error = madvise(tiles, TILES_SIZE, MADV_RANDOM);
     if (error) err(EX_OSERR, "madvise");
 
-#ifdef MADV_NOSYNC
-    error = madvise(tiles, TILES_SIZE, MADV_NOSYNC);
-    if (error) err(EX_OSERR, "madvise");
-#endif
-
 #ifdef MADV_NOCORE
     error = madvise(tiles, TILES_SIZE, MADV_NOCORE);
     if (error) err(EX_OSERR, "madvise");
