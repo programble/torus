@@ -337,10 +337,16 @@ static void initColors(void) {
     if (!has_colors()) {
         endwin();
         fprintf(stderr, "Sorry, your terminal doesn't support colors!\n");
-        fprintf(stderr, "I only need 16, I promise.\n");
+        fprintf(stderr, "If you think it does, check TERM.\n");
         exit(EX_CONFIG);
     }
     start_color();
+    if (COLOR_PAIRS < 103) { // I don't know why, but that's what works.
+        endwin();
+        fprintf(stderr, "Sorry, your terminal doesn't support enough color pairs!\n");
+        fprintf(stderr, "You probably just need to set TERM=$TERM-256color.\n");
+        exit(EX_CONFIG);
+    }
     for (int bg = COLOR_BLACK; bg < COLOR_BRIGHT; ++bg) {
         for (int fg = COLOR_BLACK; fg < COLOR_BRIGHT; ++fg) {
             init_pair(bg << 4 | fg, fg, bg);
