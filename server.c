@@ -123,16 +123,15 @@ static bool clientSend(const struct Client *client, const struct ServerMessage *
 }
 
 static void clientCast(const struct Client *origin, const struct ServerMessage *msg) {
+retry:
     for (struct Client *client = clientHead; client; client = client->next) {
         if (client == origin) continue;
         if (client->tileX != origin->tileX) continue;
         if (client->tileY != origin->tileY) continue;
 
         if (!clientSend(client, msg)) {
-            struct Client *dead = client;
-            client = client->next;
-            clientRemove(dead);
-            if (!client) break;
+            clientRemove(client);
+            goto retry;
         }
     }
 }
