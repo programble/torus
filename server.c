@@ -279,9 +279,6 @@ int main() {
         .ident = server,
         .filter = EVFILT_READ,
         .flags = EV_ADD,
-        .fflags = 0,
-        .data = 0,
-        .udata = NULL,
     };
     int nevents = kevent(kq, &event, 1, NULL, 0, NULL);
     if (nevents < 0) err(EX_OSERR, "kevent");
@@ -330,8 +327,6 @@ int main() {
             .ident = fd,
             .filter = EVFILT_READ,
             .flags = EV_ADD,
-            .fflags = 0,
-            .data = 0,
             .udata = client,
         };
         nevents = kevent(kq, &event, 1, NULL, 0, NULL);
