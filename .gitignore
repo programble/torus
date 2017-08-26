@@ -1,6 +1,7 @@
 chroot.tar
 client
 help
+meta
 root
 server
 termcap
