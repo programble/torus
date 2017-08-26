@@ -2,15 +2,12 @@ Welcome to ascii.town!
 
 This software targets FreeBSD and Darwin.
 
-C source files are self-compiling, e.g. ./server.c.
-
     torus.h        Shared structures and message protocol.
     server.c       Maps torus.dat and listens on torus.sock.
     client.c       Curses client.
     help.c         Automated client which redraws a helpful banner.
     snapshot.sh    Snapshots data file, appropriate for cron.
 
-    chroot.sh      Creates chroot tarball.
     sshd_config    Anonymous login to chrooted client.
     termcap.diff   Patch for bright colors in xterm and rxvt.
     index.html     Friendly directions.

@@ -1,7 +1,3 @@
-#if 0
-exec cc -Wall -Wextra -pedantic $@ -o help $0
-#endif
-
 /*
  * Copyright (c) 2017, Curtis McEnroe <curtis@cmcenroe.me>
  *
