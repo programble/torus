@@ -1,9 +1,3 @@
-#include <assert.h>
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdint.h>
-#include <time.h>
-
 /*
  * Copyright (c) 2017, Curtis McEnroe <curtis@cmcenroe.me>
  *
@@ -19,6 +13,12 @@
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
+
+#include <assert.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <time.h>
 
 #define ALIGNED(x) __attribute__((aligned(x)))
 
