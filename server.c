@@ -97,10 +97,10 @@ static struct Client *clientAdd(int fd) {
     if (!client) err(EX_OSERR, "malloc");
 
     client->fd = fd;
-    client->tileX = TILE_INIT_X;
-    client->tileY = TILE_INIT_Y;
-    client->cellX = CELL_INIT_X;
-    client->cellY = CELL_INIT_Y;
+    client->tileX = UINT32_MAX;
+    client->tileY = UINT32_MAX;
+    client->cellX = UINT8_MAX;
+    client->cellY = UINT8_MAX;
 
     client->prev = NULL;
     if (clientHead) {
@@ -179,6 +179,60 @@ static bool clientCursors(const struct Client *client) {
     return true;
 }
 
+static bool clientUpdate(struct Client *client, struct Client *old) {
+    struct ServerMessage msg = {
+        .type = SERVER_MOVE,
+        .data.m = { .cellX = client->cellX, .cellY = client->cellY },
+    };
+    if (!clientSend(client, &msg)) return false;
+
+    if (client->tileX != old->tileX || client->tileY != old->tileY) {
+        msg.type = SERVER_TILE;
+        if (!clientSend(client, &msg)) return false;
+
+        if (!clientCursors(client)) return false;
+
+        msg = (struct ServerMessage) {
+            .type = SERVER_CURSOR,
+            .data.c = {
+                .oldCellX = old->cellX,  .oldCellY = old->cellY,
+                .newCellX = CURSOR_NONE, .newCellY = CURSOR_NONE,
+            },
+        };
+        clientCast(old, &msg);
+
+        msg = (struct ServerMessage) {
+            .type = SERVER_CURSOR,
+            .data.c = {
+                .oldCellX = CURSOR_NONE,   .oldCellY = CURSOR_NONE,
+                .newCellX = client->cellX, .newCellY = client->cellY,
+            },
+        };
+        clientCast(client, &msg);
+
+    } else {
+        msg = (struct ServerMessage) {
+            .type = SERVER_CURSOR,
+            .data.c = {
+                .oldCellX = old->cellX,    .oldCellY = old->cellY,
+                .newCellX = client->cellX, .newCellY = client->cellY,
+            },
+        };
+        clientCast(client, &msg);
+    }
+
+    return true;
+}
+
+static bool clientSpawn(struct Client *client) {
+    struct Client old = *client;
+    client->tileX = TILE_INIT_X;
+    client->tileY = TILE_INIT_Y;
+    client->cellX = CELL_INIT_X;
+    client->cellY = CELL_INIT_Y;
+    return clientUpdate(client, &old);
+}
+
 static bool clientMove(struct Client *client, int8_t dx, int8_t dy) {
     struct Client old = *client;
 
@@ -200,48 +254,7 @@ static bool clientMove(struct Client *client, int8_t dx, int8_t dy) {
     if (client->tileY == TILE_ROWS)  client->tileY = 0;
     if (client->tileY == UINT32_MAX) client->tileY = TILE_ROWS - 1;
 
-    struct ServerMessage msg = {
-        .type = SERVER_MOVE,
-        .data.m = { .cellX = client->cellX, .cellY = client->cellY },
-    };
-    if (!clientSend(client, &msg)) return false;
-
-    if (client->tileX != old.tileX || client->tileY != old.tileY) {
-        msg.type = SERVER_TILE;
-        if (!clientSend(client, &msg)) return false;
-
-        if (!clientCursors(client)) return false;
-
-        msg = (struct ServerMessage) {
-            .type = SERVER_CURSOR,
-            .data.c = {
-                .oldCellX = old.cellX,   .oldCellY = old.cellY,
-                .newCellX = CURSOR_NONE, .newCellY = CURSOR_NONE,
-            },
-        };
-        clientCast(&old, &msg);
-
-        msg = (struct ServerMessage) {
-            .type = SERVER_CURSOR,
-            .data.c = {
-                .oldCellX = CURSOR_NONE,   .oldCellY = CURSOR_NONE,
-                .newCellX = client->cellX, .newCellY = client->cellY,
-            },
-        };
-        clientCast(client, &msg);
-
-    } else {
-        msg = (struct ServerMessage) {
-            .type = SERVER_CURSOR,
-            .data.c = {
-                .oldCellX = old.cellX,     .oldCellY = old.cellY,
-                .newCellX = client->cellX, .newCellY = client->cellY,
-            },
-        };
-        clientCast(client, &msg);
-    }
-
-    return true;
+    return clientUpdate(client, &old);
 }
 
 static bool clientPut(const struct Client *client, uint8_t color, char cell) {
@@ -319,6 +332,8 @@ int main() {
                 success = clientMove(client, msg.data.m.dx, msg.data.m.dy);
             } else if (msg.type == CLIENT_PUT) {
                 success = clientPut(client, msg.data.p.color, msg.data.p.cell);
+            } else if (msg.type == CLIENT_SPAWN) {
+                success = clientSpawn(client);
             }
             if (!success) clientRemove(client);
 
@@ -344,10 +359,6 @@ int main() {
         nevents = kevent(kq, &event, 1, NULL, 0, NULL);
         if (nevents < 0) err(EX_OSERR, "kevent");
 
-        struct ServerMessage msg = { .type = SERVER_TILE };
-        bool success = clientSend(client, &msg)
-            && clientMove(client, 0, 0)
-            && clientCursors(client);
-        if (!success) clientRemove(client);
+        if (!clientSpawn(client)) clientRemove(client);
     }
 }

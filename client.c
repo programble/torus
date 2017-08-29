@@ -65,6 +65,11 @@ static void clientPut(uint8_t color, char cell) {
     clientMessage(&msg);
 }
 
+static void clientSpawn(void) {
+    struct ClientMessage msg = { .type = CLIENT_SPAWN };
+    clientMessage(&msg);
+}
+
 static uint8_t inputColor = COLOR_WHITE;
 
 static void colorFg(uint8_t fg) {
@@ -180,6 +185,7 @@ static void readInput(void) {
         case ESC: mode = MODE_NORMAL; break;
 
         case 'q': endwin(); exit(EX_OK);
+        case 'Q': clientSpawn(); break;
 
         case 'a': clientMove(1, 0); // fallthrough
         case 'i': insertMode(1, 0); break;

@@ -95,6 +95,7 @@ struct ServerMessage {
 enum ClientMessageType {
     CLIENT_MOVE,
     CLIENT_PUT,
+    CLIENT_SPAWN,
 };
 
 struct ClientMessage {
