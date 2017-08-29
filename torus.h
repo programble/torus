@@ -58,8 +58,18 @@ static_assert(offsetof(struct Tile, colors) == 2016, "stable colors offset");
 #define TILE_COLS (512)
 #define TILES_SIZE (sizeof(struct Tile[TILE_ROWS][TILE_COLS]))
 
-#define TILE_INIT_X (0)
-#define TILE_INIT_Y (0)
+static const struct {
+    uint32_t tileX;
+    uint32_t tileY;
+} SPAWN[] = {
+    { 0, 0 },
+    { TILE_COLS * 3 / 4, TILE_ROWS * 3 / 4 }, // NW
+    { TILE_COLS * 1 / 4, TILE_ROWS * 3 / 4 }, // NE
+    { TILE_COLS * 1 / 4, TILE_ROWS * 1 / 4 }, // SE
+    { TILE_COLS * 3 / 4, TILE_ROWS * 1 / 4 }, // SW
+};
+
+#define SPAWN_COUNT (sizeof(SPAWN) / sizeof(SPAWN[0]))
 
 enum ServerMessageType {
     SERVER_TILE,
@@ -109,5 +119,8 @@ struct ClientMessage {
             uint8_t color;
             char cell;
         } p;
+        struct {
+            uint8_t spawn;
+        } s;
     } data;
 };

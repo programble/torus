@@ -224,10 +224,11 @@ static bool clientUpdate(struct Client *client, struct Client *old) {
     return true;
 }
 
-static bool clientSpawn(struct Client *client) {
+static bool clientSpawn(struct Client *client, uint8_t spawn) {
+    if (spawn >= SPAWN_COUNT) return false;
     struct Client old = *client;
-    client->tileX = TILE_INIT_X;
-    client->tileY = TILE_INIT_Y;
+    client->tileX = SPAWN[spawn].tileX;
+    client->tileY = SPAWN[spawn].tileY;
     client->cellX = CELL_INIT_X;
     client->cellY = CELL_INIT_Y;
     return clientUpdate(client, &old);
@@ -333,7 +334,7 @@ int main() {
             } else if (msg.type == CLIENT_PUT) {
                 success = clientPut(client, msg.data.p.color, msg.data.p.cell);
             } else if (msg.type == CLIENT_SPAWN) {
-                success = clientSpawn(client);
+                success = clientSpawn(client, msg.data.s.spawn);
             }
             if (!success) clientRemove(client);
 
@@ -359,6 +360,6 @@ int main() {
         nevents = kevent(kq, &event, 1, NULL, 0, NULL);
         if (nevents < 0) err(EX_OSERR, "kevent");
 
-        if (!clientSpawn(client)) clientRemove(client);
+        if (!clientSpawn(client, 0)) clientRemove(client);
     }
 }
