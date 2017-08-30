@@ -188,7 +188,13 @@ static void readInput(void) {
         case ESC: mode = MODE_NORMAL; break;
 
         case 'q': endwin(); exit(EX_OK);
-        case 'Q': clientSpawn(inputColor < SPAWN_COUNT ? inputColor : 0); break;
+        case 'Q':
+            if ((inputColor & 0x7) < SPAWN_COUNT) {
+                clientSpawn(inputColor & 0x7);
+            } else {
+                clientSpawn(0);
+            }
+            break;
 
         case 'a': clientMove(1, 0); // fallthrough
         case 'i': insertMode(1, 0); break;
