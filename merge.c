@@ -90,7 +90,7 @@ int main(int argc, char *argv[]) {
         if (!lenA || !lenB) errx(EX_IOERR, "different size inputs");
 
         if (tileA.modify == tileB.modify) {
-            ssize_t lenC = writeAll(c, (char *)&tileA, sizeof(tileA));
+            ssize_t lenC = writeAll(c, (char *)&tileB, sizeof(tileB));
             if (lenC < 0) err(EX_IOERR, "%s", argv[3]);
             continue;
         }
