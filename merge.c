@@ -56,62 +56,59 @@ static void drawTile(int offsetY, const struct Tile *tile) {
 int main(int argc, char *argv[]) {
     if (argc != 4) return EX_USAGE;
 
-    int a = open(argv[1], O_RDONLY);
-    if (a < 0) err(EX_IOERR, "%s", argv[1]);
+    int fileA = open(argv[1], O_RDONLY);
+    if (fileA < 0) err(EX_IOERR, "%s", argv[1]);
 
-    int b = open(argv[2], O_RDONLY);
-    if (b < 0) err(EX_IOERR, "%s", argv[2]);
+    int fileB = open(argv[2], O_RDONLY);
+    if (fileB < 0) err(EX_IOERR, "%s", argv[2]);
 
-    int c = open(argv[3], O_WRONLY | O_CREAT, 0644);
-    if (c < 0) err(EX_IOERR, "%s", argv[3]);
+    int fileC = open(argv[3], O_WRONLY | O_CREAT, 0644);
+    if (fileC < 0) err(EX_IOERR, "%s", argv[3]);
 
     initscr();
     cbreak();
     noecho();
     keypad(stdscr, true);
     set_escdelay(100);
+
     start_color();
     for (int bg = COLOR_BLACK; bg < COLOR_BRIGHT; ++bg) {
         for (int fg = COLOR_BLACK; fg < COLOR_BRIGHT; ++fg) {
             init_pair(bg << 4 | fg, fg, bg);
         }
     }
+
     mvhline(CELL_ROWS, 0, 0, CELL_COLS);
+    mvhline(CELL_ROWS * 2 + 1, 0, 0, CELL_COLS);
+    mvvline(0, CELL_COLS, 0, CELL_ROWS * 2 + 1);
+    mvaddch(CELL_ROWS, CELL_COLS, ACS_RTEE);
+    mvaddch(CELL_ROWS * 2 + 1, CELL_COLS, ACS_LRCORNER);
 
     struct Tile tileA, tileB;
     for (;;) {
-        ssize_t lenA = read(a, &tileA, sizeof(tileA));
+        ssize_t lenA = read(fileA, &tileA, sizeof(tileA));
         if (lenA < 0) err(EX_IOERR, "%s", argv[1]);
 
-        ssize_t lenB = read(b, &tileB, sizeof(tileB));
+        ssize_t lenB = read(fileB, &tileB, sizeof(tileB));
         if (lenB < 0) err(EX_IOERR, "%s", argv[2]);
 
         if (!lenA && !lenB) break;
         if (!lenA || !lenB) errx(EX_IOERR, "different size inputs");
 
-        if (tileA.modify == tileB.modify) {
-            ssize_t lenC = writeAll(c, (char *)&tileB, sizeof(tileB));
-            if (lenC < 0) err(EX_IOERR, "%s", argv[3]);
-            continue;
+        const struct Tile *tileC = (tileA.access > tileB.access) ? &tileA : &tileB;
+
+        if (tileA.modify != tileB.modify) {
+            drawTile(0, &tileA);
+            drawTile(CELL_ROWS + 1, &tileB);
+            move(CELL_ROWS * 2 + 2, 0);
+            refresh();
+
+            int c;
+            do { c = getch(); } while (c != 'a' && c != 'b');
+            tileC = (c == 'a') ? &tileA : &tileB;
         }
 
-        drawTile(0, &tileA);
-        drawTile(CELL_ROWS + 1, &tileB);
-        refresh();
-
-        const struct Tile *choice;
-        int ch;
-retry:
-        ch = getch();
-        if (ch == 'a') {
-            choice = &tileA;
-        } else if (ch == 'b') {
-            choice = &tileB;
-        } else {
-            goto retry;
-        }
-
-        ssize_t lenC = writeAll(c, (char *)choice, sizeof(*choice));
+        ssize_t lenC = writeAll(fileC, (char *)tileC, sizeof(*tileC));
         if (lenC < 0) err(EX_IOERR, "%s", argv[3]);
     }
 
