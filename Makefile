@@ -1,6 +1,6 @@
 USER = torus
 
-all: server client help meta
+all: server client help meta merge
 
 server: server.c torus.h
 	$(CC) -Wall -Wextra -Wpedantic $(CFLAGS) -o server server.c
@@ -14,13 +14,16 @@ help: help.c torus.h
 meta: meta.c torus.h
 	$(CC) -Wall -Wextra -Wpedantic $(CFLAGS) -o meta meta.c
 
+merge: merge.c torus.h
+	$(CC) -Wall -Wextra -Wpedantic $(CFLAGS) -lcurses -o merge merge.c
+
 termcap: termcap.diff
 	patch -p0 -o termcap < termcap.diff
 
 termcap.db: termcap
 	cap_mkdb termcap
 
-chroot.tar: server client help meta termcap.db
+chroot.tar: server client help termcap.db
 	mkdir -p root
 	install -d -o root -g wheel \
 	    root/bin \
@@ -40,10 +43,10 @@ chroot.tar: server client help meta termcap.db
 	    root/lib
 	install -o root -g wheel -m 444 termcap.db root/usr/share/misc
 	install -o root -g wheel -m 555 /bin/sh root/bin
-	install -o root -g wheel -m 555 server client help meta root/bin
+	install -o root -g wheel -m 555 server client help root/bin
 	tar -c -f chroot.tar -C root bin home lib libexec usr
 
 clean:
-	rm -f server client help meta termcap termcap.db chroot.tar
+	rm -f server client help meta merge termcap termcap.db chroot.tar
 
 .PHONY: all clean
