@@ -20,6 +20,7 @@
 #include <stdint.h>
 #include <time.h>
 
+#define UNUSED __attribute__((unused))
 #define ALIGNED(x) __attribute__((aligned(x)))
 
 enum {
