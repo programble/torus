@@ -44,8 +44,6 @@
 
 static int client;
 
-static bool readOnly = false;
-
 static void clientMessage(const struct ClientMessage *msg) {
     ssize_t len = send(client, msg, sizeof(*msg), 0);
     if (len < 0) err(EX_IOERR, "send");
@@ -60,7 +58,6 @@ static void clientMove(int8_t dx, int8_t dy) {
 }
 
 static void clientPut(uint8_t color, char cell) {
-    if (readOnly) return;
     struct ClientMessage msg = {
         .type = CLIENT_PUT,
         .data.p = { .color = color, .cell = cell },
@@ -384,9 +381,7 @@ static void initColors(void) {
     }
 }
 
-int main(int argc, char *argv[] UNUSED) {
-    if (argc > 1) readOnly = true;
-
+int main() {
     client = socket(PF_LOCAL, SOCK_STREAM, 0);
     if (client < 0) err(EX_OSERR, "socket");
 
