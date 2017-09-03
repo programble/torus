@@ -249,6 +249,11 @@ static bool clientMove(struct Client *client, int8_t dx, int8_t dy) {
     if (client->tileY == TILE_ROWS)  client->tileY = 0;
     if (client->tileY == UINT32_MAX) client->tileY = TILE_ROWS - 1;
 
+    assert(client->cellX < CELL_COLS);
+    assert(client->cellY < CELL_ROWS);
+    assert(client->tileX < TILE_COLS);
+    assert(client->tileY < TILE_ROWS);
+
     return clientUpdate(client, &old);
 }
 
