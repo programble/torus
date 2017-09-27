@@ -1,5 +1,4 @@
-/*
- * Copyright (c) 2017, Curtis McEnroe <curtis@cmcenroe.me>
+/* Copyright (c) 2017, Curtis McEnroe <curtis@cmcenroe.me>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
