@@ -7,6 +7,7 @@ This software targets FreeBSD and Darwin.
     client.c       Curses client.
     help.c         Automated client which redraws a helpful banner.
     meta.c         Exports metadata from data file to CSV.
+    merge.c        Interactively merges two data files.
     snapshot.sh    Snapshots data file, appropriate for cron.
 
     sshd_config    Anonymous login to chrooted client.
