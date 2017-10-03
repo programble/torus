@@ -1,21 +1,15 @@
 USER = torus
+BINS = server client help meta merge
+CFLAGS += -Wall -Wextra -Wpedantic
+LDLIBS = -lcurses
 
-all: server client help meta merge
+all: $(BINS)
 
-server: server.c torus.h
-	$(CC) -Wall -Wextra -Wpedantic $(CFLAGS) -o server server.c
+$(BINS): torus.h
 
-client: client.c torus.h
-	$(CC) -Wall -Wextra -Wpedantic $(CFLAGS) -lcurses -o client client.c
-
-help: help.c torus.h
-	$(CC) -Wall -Wextra -Wpedantic $(CFLAGS) -o help help.c
-
-meta: meta.c torus.h
-	$(CC) -Wall -Wextra -Wpedantic $(CFLAGS) -o meta meta.c
-
-merge: merge.c torus.h
-	$(CC) -Wall -Wextra -Wpedantic $(CFLAGS) -lcurses -o merge merge.c
+# Only necessary so GNU make doesn't try to use torus.h as a source.
+.c:
+	$(CC) $(CFLAGS) $(LDFLAGS) $< $(LDLIBS) -o $@
 
 termcap: termcap.diff
 	patch -p0 -o termcap < termcap.diff
@@ -47,6 +41,6 @@ chroot.tar: server client help termcap.db
 	tar -c -f chroot.tar -C root bin home lib libexec usr
 
 clean:
-	rm -f server client help meta merge termcap termcap.db chroot.tar
+	rm -f $(BINS) termcap termcap.db chroot.tar
 
 .PHONY: all clean
