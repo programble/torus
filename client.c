@@ -65,42 +65,46 @@ static void clientSpawn(uint8_t spawn) {
     clientMessage(msg);
 }
 
-static uint8_t inputColor = COLOR_WHITE;
-
-static void colorFg(uint8_t fg) {
-    inputColor = (inputColor & 0xF8) | fg;
-}
-
-static void colorBg(uint8_t bg) {
-    inputColor = (inputColor & 0x0F) | (bg << 4);
-}
-
-static void colorInvert(void) {
-    inputColor =
-        (inputColor & 0x08) |
-        ((inputColor & 0x07) << 4) |
-        ((inputColor & 0x70) >> 4);
-}
-
-static enum {
-    MODE_NORMAL,
-    MODE_INSERT,
-    MODE_REPLACE,
-    MODE_PUT,
-    MODE_DRAW,
-} mode;
 static struct {
+    int8_t speed;
+    uint8_t color;
+    enum {
+        MODE_NORMAL,
+        MODE_INSERT,
+        MODE_REPLACE,
+        MODE_PUT,
+        MODE_DRAW,
+    } mode;
     int8_t dx;
     int8_t dy;
     uint8_t len;
-} insert = { .dx = 1 };
-static char drawChar;
+    char draw;
+} input = {
+    .speed = 1,
+    .color = COLOR_WHITE,
+    .dx = 1,
+};
+
+static void colorFg(uint8_t fg) {
+    input.color = (input.color & 0xF8) | fg;
+}
+
+static void colorBg(uint8_t bg) {
+    input.color = (input.color & 0x0F) | (bg << 4);
+}
+
+static void colorInvert(void) {
+    input.color =
+        (input.color & 0x08) |
+        ((input.color & 0x07) << 4) |
+        ((input.color & 0x70) >> 4);
+}
 
 static void insertMode(int8_t dx, int8_t dy) {
-    mode = MODE_INSERT;
-    insert.dx = dx;
-    insert.dy = dy;
-    insert.len = 0;
+    input.mode = MODE_INSERT;
+    input.dx = dx;
+    input.dy = dy;
+    input.len = 0;
 }
 
 static void swapCell(int8_t dx, int8_t dy) {
@@ -119,16 +123,14 @@ static void swapCell(int8_t dx, int8_t dy) {
     clientPut(aColor, aCell);
 }
 
-static int8_t moveSpeed = 1;
-
 static void readInput(void) {
     int c = getch();
 
-    if (mode == MODE_INSERT) {
+    if (input.mode == MODE_INSERT) {
         if (c == ESC) {
-            mode = MODE_NORMAL;
-            clientMove(-insert.dx, -insert.dy);
-        } else if (!insert.dx && !insert.dy) {
+            input.mode = MODE_NORMAL;
+            clientMove(-input.dx, -input.dy);
+        } else if (!input.dx && !input.dy) {
             switch (c) {
                 case 'h': insertMode(-1,  0); break;
                 case 'j': insertMode( 0,  1); break;
@@ -140,78 +142,78 @@ static void readInput(void) {
                 case 'n': insertMode( 1,  1); break;
             }
         } else if (c == '\b' || c == DEL) {
-            clientMove(-insert.dx, -insert.dy);
-            clientPut(inputColor, ' ');
-            insert.len--;
+            clientMove(-input.dx, -input.dy);
+            clientPut(input.color, ' ');
+            input.len--;
         } else if (c == '\n') {
-            clientMove(insert.dy, insert.dx);
-            clientMove(-insert.dx * insert.len, -insert.dy * insert.len);
-            insert.len = 0;
+            clientMove(input.dy, input.dx);
+            clientMove(-input.dx * input.len, -input.dy * input.len);
+            input.len = 0;
         } else if (isprint(c)) {
-            clientPut(inputColor, c);
-            clientMove(insert.dx, insert.dy);
-            insert.len++;
+            clientPut(input.color, c);
+            clientMove(input.dx, input.dy);
+            input.len++;
         }
         return;
     }
 
-    if (mode == MODE_REPLACE) {
+    if (input.mode == MODE_REPLACE) {
         if (isprint(c)) clientPut(CH_COLOR(inch()), c);
-        mode = MODE_NORMAL;
+        input.mode = MODE_NORMAL;
         return;
     }
 
-    if (mode == MODE_PUT) {
-        if (isprint(c)) clientPut(inputColor, c);
-        mode = MODE_NORMAL;
+    if (input.mode == MODE_PUT) {
+        if (isprint(c)) clientPut(input.color, c);
+        input.mode = MODE_NORMAL;
         return;
     }
 
-    if (mode == MODE_DRAW && !drawChar) {
-        if (c == ESC) mode = MODE_NORMAL;
+    if (input.mode == MODE_DRAW && !input.draw) {
+        if (c == ESC) input.mode = MODE_NORMAL;
         if (isprint(c)) {
-            drawChar = c;
-            clientPut(inputColor, c);
+            input.draw = c;
+            clientPut(input.color, c);
         }
         return;
     }
 
     switch (c) {
-        case ESC: mode = MODE_NORMAL; break;
+        case ESC: input.mode = MODE_NORMAL; break;
 
         case 'q': endwin(); exit(EX_OK);
-        case 'Q':
-            if ((inputColor & 0x7) < SPAWN_COUNT) {
-                clientSpawn(inputColor & 0x7);
+        case 'Q': {
+            if ((input.color & 0x07) < SPAWNS_LEN) {
+                clientSpawn(input.color & 0x07);
             } else {
                 clientSpawn(0);
             }
-            break;
+        } break;
 
         case 'a': clientMove(1, 0); // fallthrough
         case 'i': insertMode(1, 0); break;
         case 'I': insertMode(0, 0); break;
-        case 'r': mode = MODE_REPLACE; break;
-        case 'p': mode = MODE_PUT; break;
-        case 'R': mode = MODE_DRAW; drawChar = 0; break;
+        case 'r': input.mode = MODE_REPLACE; break;
+        case 'p': input.mode = MODE_PUT; break;
+        case 'R': input.mode = MODE_DRAW; input.draw = 0; break;
         case 'x': clientPut(CH_COLOR(inch()), ' '); break;
 
-        case '~':
-            clientPut(inputColor, inch() & 0x7F);
-            clientMove(insert.dx, insert.dy);
-            break;
+        case '~': {
+            clientPut(input.color, inch() & 0x7F);
+            clientMove(input.dx, input.dy);
+        } break;
 
-        case '[': if (moveSpeed > 1) moveSpeed--; break;
-        case ']': if (moveSpeed < 4) moveSpeed++; break;
+        case '[': if (input.speed > 1) input.speed--; break;
+        case ']': if (input.speed < 4) input.speed++; break;
 
-        case 'h': clientMove(-moveSpeed,          0); break;
-        case 'j': clientMove(         0,  moveSpeed); break;
-        case 'k': clientMove(         0, -moveSpeed); break;
-        case 'l': clientMove( moveSpeed,          0); break;
-        case 'y': clientMove(-moveSpeed, -moveSpeed); break;
-        case 'u': clientMove( moveSpeed, -moveSpeed); break;
-        case 'b': clientMove(-moveSpeed,  moveSpeed); break;
-        case 'n': clientMove( moveSpeed,  moveSpeed); break;
+        case 'h': clientMove(-input.speed,            0); break;
+        case 'j': clientMove(           0,  input.speed); break;
+        case 'k': clientMove(           0, -input.speed); break;
+        case 'l': clientMove( input.speed,            0); break;
+        case 'y': clientMove(-input.speed, -input.speed); break;
+        case 'u': clientMove( input.speed, -input.speed); break;
+        case 'b': clientMove(-input.speed,  input.speed); break;
+        case 'n': clientMove( input.speed,  input.speed); break;
 
         case 'H': swapCell(-1,  0); break;
         case 'J': swapCell( 0,  1); break;
@@ -222,7 +224,7 @@ static void readInput(void) {
         case 'B': swapCell(-1,  1); break;
         case 'N': swapCell( 1,  1); break;
 
-        case '`': inputColor = CH_COLOR(inch()); break;
+        case '`': input.color = CH_COLOR(inch()); break;
 
         case '0': colorFg(COLOR_BLACK);   break;
         case '1': colorFg(COLOR_RED);     break;
@@ -243,18 +245,18 @@ static void readInput(void) {
         case '&': colorBg(COLOR_WHITE);   break;
 
         case '*':
-        case '8': inputColor ^= COLOR_BRIGHT; break;
+        case '8': input.color ^= COLOR_BRIGHT; break;
 
         case '(':
         case '9': colorInvert(); break;
 
-        case KEY_LEFT: clientMove(-1,  0); break;
-        case KEY_DOWN: clientMove( 0,  1); break;
-        case KEY_UP: clientMove( 0, -1); break;
+        case KEY_LEFT:  clientMove(-1,  0); break;
+        case KEY_DOWN:  clientMove( 0,  1); break;
+        case KEY_UP:    clientMove( 0, -1); break;
         case KEY_RIGHT: clientMove( 1,  0); break;
     }
 
-    if (mode == MODE_DRAW && drawChar) clientPut(inputColor, drawChar);
+    if (input.mode == MODE_DRAW && input.draw) clientPut(input.color, input.draw);
 }
 
 static void serverPut(uint8_t x, uint8_t y, uint8_t color, char cell) {

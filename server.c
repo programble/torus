@@ -238,10 +238,22 @@ static bool clientMove(struct Client *client, int8_t dx, int8_t dy) {
     client->cellX += dx;
     client->cellY += dy;
 
-    if (client->cellX == CELL_COLS) { client->tileX++; client->cellX = 0; }
-    if (client->cellX == UINT8_MAX) { client->tileX--; client->cellX = CELL_COLS - 1; }
-    if (client->cellY == CELL_ROWS) { client->tileY++; client->cellY = 0; }
-    if (client->cellY == UINT8_MAX) { client->tileY--; client->cellY = CELL_ROWS - 1; }
+    if (client->cellX == CELL_COLS) {
+        client->tileX++;
+        client->cellX = 0;
+    }
+    if (client->cellX == UINT8_MAX) {
+        client->tileX--;
+        client->cellX = CELL_COLS - 1;
+    }
+    if (client->cellY == CELL_ROWS) {
+        client->tileY++;
+        client->cellY = 0;
+    }
+    if (client->cellY == UINT8_MAX) {
+        client->tileY--;
+        client->cellY = CELL_ROWS - 1;
+    }
 
     if (client->tileX == TILE_COLS)  client->tileX = 0;
     if (client->tileX == UINT32_MAX) client->tileX = TILE_COLS - 1;
