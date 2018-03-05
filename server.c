@@ -39,7 +39,7 @@ static struct Tile *tiles;
 
 static void tilesMap(void) {
     int fd = open("torus.dat", O_CREAT | O_RDWR, 0644);
-    if (fd < 0) err(EX_IOERR, "torus.dat");
+    if (fd < 0) err(EX_CANTCREAT, "torus.dat");
 
     int error = ftruncate(fd, TILES_SIZE);
     if (error) err(EX_IOERR, "ftruncate");
@@ -114,20 +114,20 @@ static struct Client *clientAdd(int fd) {
     return client;
 }
 
-static bool clientSend(const struct Client *client, const struct ServerMessage *msg) {
-    ssize_t len = send(client->fd, msg, sizeof(*msg), 0);
-    if (len < 0) return false;
+static bool clientSend(const struct Client *client, struct ServerMessage msg) {
+    ssize_t size = send(client->fd, &msg, sizeof(msg), 0);
+    if (size < 0) return false;
 
-    if (msg->type == SERVER_TILE) {
+    if (msg.type == SERVER_TILE) {
         struct Tile *tile = tileAccess(client->tileX, client->tileY);
-        len = send(client->fd, tile, sizeof(*tile), 0);
-        if (len < 0) return false;
+        size = send(client->fd, tile, sizeof(*tile), 0);
+        if (size < 0) return false;
     }
 
     return true;
 }
 
-static void clientCast(const struct Client *origin, const struct ServerMessage *msg) {
+static void clientCast(const struct Client *origin, struct ServerMessage msg) {
     for (struct Client *client = clientHead; client; client = client->next) {
         if (client == origin) continue;
         if (client->tileX != origin->tileX) continue;
@@ -148,7 +148,7 @@ static void clientRemove(struct Client *client) {
             .newCellX = CURSOR_NONE,   .newCellY = CURSOR_NONE,
         },
     };
-    clientCast(client, &msg);
+    clientCast(client, msg);
 
     close(client->fd);
     free(client);
@@ -167,21 +167,21 @@ static bool clientCursors(const struct Client *client) {
 
         msg.data.c.newCellX = friend->cellX;
         msg.data.c.newCellY = friend->cellY;
-        if (!clientSend(client, &msg)) return false;
+        if (!clientSend(client, msg)) return false;
     }
     return true;
 }
 
-static bool clientUpdate(struct Client *client, struct Client *old) {
+static bool clientUpdate(const struct Client *client, const struct Client *old) {
     struct ServerMessage msg = {
         .type = SERVER_MOVE,
         .data.m = { .cellX = client->cellX, .cellY = client->cellY },
     };
-    if (!clientSend(client, &msg)) return false;
+    if (!clientSend(client, msg)) return false;
 
     if (client->tileX != old->tileX || client->tileY != old->tileY) {
         msg.type = SERVER_TILE;
-        if (!clientSend(client, &msg)) return false;
+        if (!clientSend(client, msg)) return false;
 
         if (!clientCursors(client)) return false;
 
@@ -192,7 +192,7 @@ static bool clientUpdate(struct Client *client, struct Client *old) {
                 .newCellX = CURSOR_NONE, .newCellY = CURSOR_NONE,
             },
         };
-        clientCast(old, &msg);
+        clientCast(old, msg);
 
         msg = (struct ServerMessage) {
             .type = SERVER_CURSOR,
@@ -201,7 +201,7 @@ static bool clientUpdate(struct Client *client, struct Client *old) {
                 .newCellX = client->cellX, .newCellY = client->cellY,
             },
         };
-        clientCast(client, &msg);
+        clientCast(client, msg);
 
     } else {
         msg = (struct ServerMessage) {
@@ -270,8 +270,8 @@ static bool clientPut(const struct Client *client, uint8_t color, char cell) {
             .cell = cell,
         },
     };
-    bool success = clientSend(client, &msg);
-    clientCast(client, &msg);
+    bool success = clientSend(client, msg);
+    clientCast(client, msg);
     return success;
 }
 
@@ -291,7 +291,7 @@ int main() {
         .sun_path = "torus.sock",
     };
     error = bind(server, (struct sockaddr *)&addr, sizeof(addr));
-    if (error) err(EX_IOERR, "torus.sock");
+    if (error) err(EX_CANTCREAT, "torus.sock");
 
     error = listen(server, 0);
     if (error) err(EX_OSERR, "listen");
@@ -310,54 +310,53 @@ int main() {
     for (;;) {
         nevents = kevent(kq, NULL, 0, &event, 1, NULL);
         if (nevents < 0) err(EX_IOERR, "kevent");
-        if (!nevents) continue;
 
-        if (event.udata) {
-            struct Client *client = event.udata;
-            if (event.flags & EV_EOF) {
-                clientRemove(client);
-                continue;
-            }
+        if (!event.udata) {
+            int fd = accept(server, NULL, NULL);
+            if (fd < 0) err(EX_IOERR, "accept");
+            fcntl(fd, F_SETFL, O_NONBLOCK);
 
-            struct ClientMessage msg;
-            ssize_t len = recv(client->fd, &msg, sizeof(msg), 0);
-            if (len != sizeof(msg)) {
-                clientRemove(client);
-                continue;
-            }
+            int on = 1;
+            error = setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, &on, sizeof(on));
+            if (error) err(EX_IOERR, "setsockopt");
 
-            bool success = false;
-            if (msg.type == CLIENT_MOVE) {
-                success = clientMove(client, msg.data.m.dx, msg.data.m.dy);
-            } else if (msg.type == CLIENT_PUT) {
-                success = clientPut(client, msg.data.p.color, msg.data.p.cell);
-            } else if (msg.type == CLIENT_SPAWN) {
-                success = clientSpawn(client, msg.data.s.spawn);
-            }
-            if (!success) clientRemove(client);
+            struct Client *client = clientAdd(fd);
+
+            struct kevent event = {
+                .ident = fd,
+                .filter = EVFILT_READ,
+                .flags = EV_ADD,
+                .udata = client,
+            };
+            nevents = kevent(kq, &event, 1, NULL, 0, NULL);
+            if (nevents < 0) err(EX_IOERR, "kevent");
+
+            if (!clientSpawn(client, 0)) clientRemove(client);
 
             continue;
         }
 
-        int fd = accept(server, NULL, NULL);
-        if (fd < 0) err(EX_IOERR, "accept");
-        fcntl(fd, F_SETFL, O_NONBLOCK);
+        struct Client *client = event.udata;
+        if (event.flags & EV_EOF) {
+            clientRemove(client);
+            continue;
+        }
 
-        int on = 1;
-        error = setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, &on, sizeof(on));
-        if (error) err(EX_IOERR, "setsockopt");
+        struct ClientMessage msg;
+        ssize_t size = recv(client->fd, &msg, sizeof(msg), 0);
+        if (size != sizeof(msg)) {
+            clientRemove(client);
+            continue;
+        }
 
-        struct Client *client = clientAdd(fd);
-
-        struct kevent event = {
-            .ident = fd,
-            .filter = EVFILT_READ,
-            .flags = EV_ADD,
-            .udata = client,
-        };
-        nevents = kevent(kq, &event, 1, NULL, 0, NULL);
-        if (nevents < 0) err(EX_OSERR, "kevent");
-
-        if (!clientSpawn(client, 0)) clientRemove(client);
+        bool success = false;
+        if (msg.type == CLIENT_MOVE) {
+            success = clientMove(client, msg.data.m.dx, msg.data.m.dy);
+        } else if (msg.type == CLIENT_PUT) {
+            success = clientPut(client, msg.data.p.color, msg.data.p.cell);
+        } else if (msg.type == CLIENT_SPAWN) {
+            success = clientSpawn(client, msg.data.s.spawn);
+        }
+        if (!success) clientRemove(client);
     }
 }

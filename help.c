@@ -25,9 +25,9 @@
 
 static int client;
 
-static void clientMessage(const struct ClientMessage *msg) {
-    ssize_t len = send(client, msg, sizeof(*msg), 0);
-    if (len < 0) err(EX_IOERR, "send");
+static void clientMessage(struct ClientMessage msg) {
+    ssize_t size = send(client, &msg, sizeof(msg), 0);
+    if (size < 0) err(EX_IOERR, "send");
 }
 
 static void clientMove(int8_t dx, int8_t dy) {
@@ -35,7 +35,7 @@ static void clientMove(int8_t dx, int8_t dy) {
         .type = CLIENT_MOVE,
         .data.m = { .dx = dx, .dy = dy },
     };
-    clientMessage(&msg);
+    clientMessage(msg);
 }
 
 static void clientPut(uint8_t color, char cell) {
@@ -43,7 +43,7 @@ static void clientPut(uint8_t color, char cell) {
         .type = CLIENT_PUT,
         .data.p = { .color = color, .cell = cell },
     };
-    clientMessage(&msg);
+    clientMessage(msg);
 }
 
 #define DELAY (50000)
@@ -96,7 +96,7 @@ int main() {
         .sun_path = "torus.sock",
     };
     int error = connect(client, (struct sockaddr *)&addr, sizeof(addr));
-    if (error) err(EX_IOERR, "torus.sock");
+    if (error) err(EX_NOINPUT, "torus.sock");
 
     pid_t pid = fork();
     if (pid < 0) err(EX_OSERR, "fork");
@@ -104,9 +104,9 @@ int main() {
     if (!pid) {
         for (;;) {
             char buf[4096];
-            ssize_t len = recv(client, buf, sizeof(buf), 0);
-            if (len < 0) err(EX_IOERR, "recv");
-            if (!len) return EX_OK;
+            ssize_t size = recv(client, buf, sizeof(buf), 0);
+            if (size < 0) err(EX_IOERR, "recv");
+            if (!size) return EX_OK;
         }
     }
 

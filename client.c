@@ -36,9 +36,9 @@
 
 static int client;
 
-static void clientMessage(const struct ClientMessage *msg) {
-    ssize_t len = send(client, msg, sizeof(*msg), 0);
-    if (len < 0) err(EX_IOERR, "send");
+static void clientMessage(struct ClientMessage msg) {
+    ssize_t size = send(client, &msg, sizeof(msg), 0);
+    if (size < 0) err(EX_IOERR, "send");
 }
 
 static void clientMove(int8_t dx, int8_t dy) {
@@ -46,7 +46,7 @@ static void clientMove(int8_t dx, int8_t dy) {
         .type = CLIENT_MOVE,
         .data.m = { .dx = dx, .dy = dy },
     };
-    clientMessage(&msg);
+    clientMessage(msg);
 }
 
 static void clientPut(uint8_t color, char cell) {
@@ -54,7 +54,7 @@ static void clientPut(uint8_t color, char cell) {
         .type = CLIENT_PUT,
         .data.p = { .color = color, .cell = cell },
     };
-    clientMessage(&msg);
+    clientMessage(msg);
 }
 
 static void clientSpawn(uint8_t spawn) {
@@ -62,7 +62,7 @@ static void clientSpawn(uint8_t spawn) {
         .type = CLIENT_SPAWN,
         .data.s.spawn = spawn,
     };
-    clientMessage(&msg);
+    clientMessage(msg);
 }
 
 static uint8_t inputColor = COLOR_WHITE;
@@ -265,9 +265,9 @@ static void serverPut(uint8_t x, uint8_t y, uint8_t color, char cell) {
 
 static void serverTile(void) {
     struct Tile tile;
-    ssize_t len = recv(client, &tile, sizeof(tile), 0);
-    if (len < 0) err(EX_IOERR, "recv");
-    if (len < (ssize_t)sizeof(tile)) {
+    ssize_t size = recv(client, &tile, sizeof(tile), 0);
+    if (size < 0) err(EX_IOERR, "recv");
+    if ((size_t)size < sizeof(tile)) {
         errx(EX_PROTOCOL, "This tile isn't big enough...");
     }
 
@@ -291,43 +291,42 @@ static void serverCursor(uint8_t oldX, uint8_t oldY, uint8_t newX, uint8_t newY)
 
 static void readMessage(void) {
     struct ServerMessage msg;
-    ssize_t len = recv(client, &msg, sizeof(msg), 0);
-    if (len < 0) err(EX_IOERR, "recv");
-    if (len < (ssize_t)sizeof(msg)) errx(EX_PROTOCOL, "A message was cut short.");
+    ssize_t size = recv(client, &msg, sizeof(msg), 0);
+    if (size < 0) err(EX_IOERR, "recv");
+    if ((size_t)size < sizeof(msg)) errx(EX_PROTOCOL, "A message was cut short.");
 
     int sy, sx;
     getyx(stdscr, sy, sx);
 
     switch (msg.type) {
-        case SERVER_TILE:
+        case SERVER_TILE: {
             serverTile();
-            break;
+        } break;
 
-        case SERVER_MOVE:
+        case SERVER_MOVE: {
             move(msg.data.m.cellY, msg.data.m.cellX);
             refresh();
-            return;
+        } return;
 
-        case SERVER_PUT:
+        case SERVER_PUT: {
             serverPut(
                 msg.data.p.cellX,
                 msg.data.p.cellY,
                 msg.data.p.color,
                 msg.data.p.cell
             );
-            break;
+        } break;
 
-        case SERVER_CURSOR:
+        case SERVER_CURSOR: {
             serverCursor(
                 msg.data.c.oldCellX,
                 msg.data.c.oldCellY,
                 msg.data.c.newCellX,
                 msg.data.c.newCellY
             );
-            break;
+        } break;
 
-        default:
-            errx(EX_PROTOCOL, "I don't know what %d means!", msg.type);
+        default: errx(EX_PROTOCOL, "I don't know what %d means!", msg.type);
     }
 
     move(sy, sx);
@@ -382,7 +381,7 @@ int main() {
         .sun_path = "torus.sock",
     };
     int error = connect(client, (struct sockaddr *)&addr, sizeof(addr));
-    if (error) err(EX_IOERR, "torus.sock");
+    if (error) err(EX_NOINPUT, "torus.sock");
 
     initscr();
     cbreak();
