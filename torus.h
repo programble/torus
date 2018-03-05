@@ -20,6 +20,7 @@
 #include <stdint.h>
 #include <time.h>
 
+#define PACKED __attribute__((packed))
 #define ALIGNED(x) __attribute__((aligned(x)))
 
 #undef COLOR_BLACK
@@ -80,15 +81,13 @@ static const struct {
 
 #define SPAWN_COUNT (sizeof(SPAWN) / sizeof(SPAWN[0]))
 
-enum ServerMessageType {
-    SERVER_TILE,
-    SERVER_MOVE,
-    SERVER_PUT,
-    SERVER_CURSOR,
-};
-
 struct ServerMessage {
-    enum ServerMessageType type;
+    enum PACKED {
+        SERVER_TILE,
+        SERVER_MOVE,
+        SERVER_PUT,
+        SERVER_CURSOR,
+    } type;
     union {
         struct {
             uint8_t cellX;
@@ -111,14 +110,12 @@ struct ServerMessage {
 
 #define CURSOR_NONE UINT8_MAX
 
-enum ClientMessageType {
-    CLIENT_MOVE,
-    CLIENT_PUT,
-    CLIENT_SPAWN,
-};
-
 struct ClientMessage {
-    enum ClientMessageType type;
+    enum PACKED {
+        CLIENT_MOVE,
+        CLIENT_PUT,
+        CLIENT_SPAWN,
+    } type;
     union {
         struct {
             int8_t dx;
