@@ -68,18 +68,20 @@ static_assert(2016 == offsetof(struct Tile, colors), "stable colors offset");
 #define TILE_COLS (512)
 #define TILES_SIZE (sizeof(struct Tile[TILE_ROWS][TILE_COLS]))
 
+#define TILE_VOID_X UINT32_MAX
+#define TILE_VOID_Y UINT32_MAX
+
 static const struct {
     uint32_t tileX;
     uint32_t tileY;
-} SPAWN[] = {
+} SPAWNS[] = {
     { 0, 0 },
     { TILE_COLS * 3 / 4, TILE_ROWS * 3 / 4 }, // NW
     { TILE_COLS * 1 / 4, TILE_ROWS * 3 / 4 }, // NE
     { TILE_COLS * 1 / 4, TILE_ROWS * 1 / 4 }, // SE
     { TILE_COLS * 3 / 4, TILE_ROWS * 1 / 4 }, // SW
 };
-
-#define SPAWN_COUNT (sizeof(SPAWN) / sizeof(SPAWN[0]))
+#define SPAWNS_LEN (sizeof(SPAWNS) / sizeof(SPAWNS[0]))
 
 struct ServerMessage {
     enum PACKED {

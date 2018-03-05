@@ -97,10 +97,10 @@ static struct Client *clientAdd(int fd) {
     if (!client) err(EX_OSERR, "malloc");
 
     client->fd = fd;
-    client->tileX = UINT32_MAX;
-    client->tileY = UINT32_MAX;
-    client->cellX = UINT8_MAX;
-    client->cellY = UINT8_MAX;
+    client->tileX = TILE_VOID_X;
+    client->tileY = TILE_VOID_Y;
+    client->cellX = CELL_INIT_X;
+    client->cellY = CELL_INIT_Y;
 
     client->prev = NULL;
     if (clientHead) {
@@ -211,17 +211,17 @@ static bool clientUpdate(struct Client *client, struct Client *old) {
                 .newCellX = client->cellX, .newCellY = client->cellY,
             },
         };
-        clientCast(client, &msg);
+        clientCast(client, msg);
     }
 
     return true;
 }
 
 static bool clientSpawn(struct Client *client, uint8_t spawn) {
-    if (spawn >= SPAWN_COUNT) return false;
+    if (spawn >= SPAWNS_LEN) return false;
     struct Client old = *client;
-    client->tileX = SPAWN[spawn].tileX;
-    client->tileY = SPAWN[spawn].tileY;
+    client->tileX = SPAWNS[spawn].tileX;
+    client->tileY = SPAWNS[spawn].tileY;
     client->cellX = CELL_INIT_X;
     client->cellY = CELL_INIT_Y;
     return clientUpdate(client, &old);
