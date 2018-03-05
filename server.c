@@ -58,24 +58,24 @@ static void tilesMap(void) {
 
 static struct Tile *tileGet(uint32_t tileX, uint32_t tileY) {
     struct Tile *tile = &tiles[tileY * TILE_ROWS + tileX];
-    if (!tile->create) {
+    if (!tile->createTime) {
         memset(tile->cells, ' ', CELLS_SIZE);
         memset(tile->colors, COLOR_WHITE, CELLS_SIZE);
-        tile->create = time(NULL);
+        tile->createTime = time(NULL);
     }
     return tile;
 }
 
 static struct Tile *tileAccess(uint32_t tileX, uint32_t tileY) {
     struct Tile *tile = tileGet(tileX, tileY);
-    tile->access = time(NULL);
+    tile->accessTime = time(NULL);
     tile->accessCount++;
     return tile;
 }
 
 static struct Tile *tileModify(uint32_t tileX, uint32_t tileY) {
     struct Tile *tile = tileGet(tileX, tileY);
-    tile->modify = time(NULL);
+    tile->modifyTime = time(NULL);
     tile->modifyCount++;
     return tile;
 }

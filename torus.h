@@ -51,18 +51,18 @@ enum {
 #define CELL_INIT_X (CELL_COLS / 2)
 #define CELL_INIT_Y (CELL_ROWS / 2)
 
-struct Tile {
-    time_t create;
-    time_t modify;
-    char cells[CELL_ROWS][CELL_COLS] ALIGNED(16);
-    uint8_t colors[CELL_ROWS][CELL_COLS] ALIGNED(16);
+struct ALIGNED(4096) Tile {
+    time_t createTime;
+    time_t modifyTime;
+    char ALIGNED(16) cells[CELL_ROWS][CELL_COLS];
+    uint8_t ALIGNED(16) colors[CELL_ROWS][CELL_COLS];
     uint32_t modifyCount;
     uint32_t accessCount;
-    time_t access;
-} ALIGNED(4096);
-static_assert(sizeof(struct Tile) == 4096, "struct Tile is page-sized");
-static_assert(offsetof(struct Tile, cells) == 16, "stable cells offset");
-static_assert(offsetof(struct Tile, colors) == 2016, "stable colors offset");
+    time_t accessTime;
+};
+static_assert(4096 == sizeof(struct Tile), "struct File is page-sized");
+static_assert(16 == offsetof(struct Tile, cells), "stable cells offset");
+static_assert(2016 == offsetof(struct Tile, colors), "stable colors offset");
 
 #define TILE_ROWS (512)
 #define TILE_COLS (512)

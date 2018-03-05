@@ -87,9 +87,11 @@ int main(int argc, char *argv[]) {
         if (!lenA && !lenB) break;
         if (!lenA || !lenB) errx(EX_IOERR, "different size inputs");
 
-        const struct Tile *tileC = (tileA.access > tileB.access) ? &tileA : &tileB;
+        const struct Tile *tileC = (tileA.accessTime > tileB.accessTime)
+            ? &tileA
+            : &tileB;
 
-        if (tileA.modify != tileB.modify) {
+        if (tileA.modifyTime != tileB.modifyTime) {
             drawTile(0, &tileA);
             drawTile(CELL_ROWS + 1, &tileB);
             move(CELL_ROWS * 2 + 2, 0);
