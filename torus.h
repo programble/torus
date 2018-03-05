@@ -22,6 +22,15 @@
 
 #define ALIGNED(x) __attribute__((aligned(x)))
 
+#undef COLOR_BLACK
+#undef COLOR_RED
+#undef COLOR_GREEN
+#undef COLOR_YELLOW
+#undef COLOR_BLUE
+#undef COLOR_MAGENTA
+#undef COLOR_CYAN
+#undef COLOR_WHITE
+
 enum {
     COLOR_BLACK,
     COLOR_RED,

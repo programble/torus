@@ -21,14 +21,6 @@
 #include <sysexits.h>
 #include <unistd.h>
 
-#undef COLOR_BLACK
-#undef COLOR_RED
-#undef COLOR_GREEN
-#undef COLOR_YELLOW
-#undef COLOR_BLUE
-#undef COLOR_MAGENTA
-#undef COLOR_CYAN
-#undef COLOR_WHITE
 #include "torus.h"
 
 static ssize_t writeAll(int fd, const char *buf, size_t len) {
