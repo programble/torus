@@ -5,6 +5,7 @@ merge
 meta
 root
 server
+tags
 termcap
 termcap.db
 torus.dat

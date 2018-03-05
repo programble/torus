@@ -3,7 +3,7 @@ BINS = server client help meta merge
 CFLAGS += -Wall -Wextra -Wpedantic
 LDLIBS = -lcurses
 
-all: $(BINS)
+all: tags $(BINS)
 
 $(BINS): torus.h
 
@@ -40,7 +40,10 @@ chroot.tar: server client help termcap.db
 	install -o root -g wheel -m 555 server client help root/bin
 	tar -c -f chroot.tar -C root bin home lib libexec usr
 
+tags: *.h *.c
+	ctags -w *.h *.c
+
 clean:
-	rm -f $(BINS) termcap termcap.db chroot.tar
+	rm -f tags $(BINS) termcap termcap.db chroot.tar
 
 .PHONY: all clean
