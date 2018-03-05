@@ -17,7 +17,6 @@
 #include <err.h>
 #include <stdio.h>
 #include <sysexits.h>
-#include <unistd.h>
 
 #include "torus.h"
 
@@ -25,9 +24,9 @@ int main() {
     printf("tileX,tileY,createTime,modifyCount,modifyTime,accessCount,accessTime\n");
     for (int i = 0;; ++i) {
         struct Tile tile;
-        ssize_t len = read(STDIN_FILENO, &tile, sizeof(tile));
-        if (len < 0) err(EX_IOERR, "read");
-        if (!len) return EX_OK;
+        size_t count = fread(&tile, sizeof(tile), 1, stdin);
+        if (ferror(stdin)) err(EX_IOERR, "(stdin)");
+        if (!count) return EX_OK;
 
         printf(
             "%d,%d,%ld,%u,%ld,%u,%ld\n",

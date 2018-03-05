@@ -19,22 +19,12 @@
 #include <fcntl.h>
 #include <stdio.h>
 #include <sysexits.h>
-#include <unistd.h>
 
 #include "torus.h"
 
-static ssize_t writeAll(int fd, const char *buf, size_t len) {
-    ssize_t writeLen;
-    while (0 < (writeLen = write(fd, buf, len))) {
-        buf += writeLen;
-        len -= writeLen;
-    }
-    return writeLen;
-}
-
 static void drawTile(int offsetY, const struct Tile *tile) {
-    for (int y = 0; y < CELL_ROWS; ++y) {
-        for (int x = 0; x < CELL_COLS; ++x) {
+    for (uint8_t y = 0; y < CELL_ROWS; ++y) {
+        for (uint8_t x = 0; x < CELL_COLS; ++x) {
             uint8_t color = tile->colors[y][x];
             char cell = tile->cells[y][x];
 
@@ -48,14 +38,14 @@ static void drawTile(int offsetY, const struct Tile *tile) {
 int main(int argc, char *argv[]) {
     if (argc != 4) return EX_USAGE;
 
-    int fileA = open(argv[1], O_RDONLY);
-    if (fileA < 0) err(EX_IOERR, "%s", argv[1]);
+    FILE *fileA = fopen(argv[1], "r");
+    if (!fileA) err(EX_NOINPUT, "%s", argv[1]);
 
-    int fileB = open(argv[2], O_RDONLY);
-    if (fileB < 0) err(EX_IOERR, "%s", argv[2]);
+    FILE *fileB = fopen(argv[2], "r");
+    if (!fileB) err(EX_NOINPUT, "%s", argv[2]);
 
-    int fileC = open(argv[3], O_WRONLY | O_CREAT, 0644);
-    if (fileC < 0) err(EX_IOERR, "%s", argv[3]);
+    FILE *fileC = fopen(argv[3], "w");
+    if (!fileC) err(EX_CANTCREAT, "%s", argv[3]);
 
     initscr();
     cbreak();
@@ -78,14 +68,14 @@ int main(int argc, char *argv[]) {
 
     struct Tile tileA, tileB;
     for (;;) {
-        ssize_t lenA = read(fileA, &tileA, sizeof(tileA));
-        if (lenA < 0) err(EX_IOERR, "%s", argv[1]);
+        size_t countA = fread(&tileA, sizeof(tileA), 1, fileA);
+        if (ferror(fileA)) err(EX_IOERR, "%s", argv[1]);
 
-        ssize_t lenB = read(fileB, &tileB, sizeof(tileB));
-        if (lenB < 0) err(EX_IOERR, "%s", argv[2]);
+        size_t countB = fread(&tileB, sizeof(tileB), 1, fileB);
+        if (ferror(fileB)) err(EX_IOERR, "%s", argv[2]);
 
-        if (!lenA && !lenB) break;
-        if (!lenA || !lenB) errx(EX_IOERR, "different size inputs");
+        if (!countA && !countB) break;
+        if (!countA || !countB) errx(EX_DATAERR, "different size inputs");
 
         const struct Tile *tileC = (tileA.accessTime > tileB.accessTime)
             ? &tileA
@@ -102,8 +92,8 @@ int main(int argc, char *argv[]) {
             tileC = (c == 'a') ? &tileA : &tileB;
         }
 
-        ssize_t lenC = writeAll(fileC, (char *)tileC, sizeof(*tileC));
-        if (lenC < 0) err(EX_IOERR, "%s", argv[3]);
+        fwrite(tileC, sizeof(*tileC), 1, fileC);
+        if (ferror(fileC)) err(EX_IOERR, "%s", argv[3]);
     }
 
     endwin();
