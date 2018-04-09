@@ -18,6 +18,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <time.h>
 
 #define PACKED __attribute__((packed))
@@ -44,12 +45,14 @@ enum {
     COLOR_BRIGHT,
 };
 
-#define CELL_ROWS (25)
-#define CELL_COLS (80)
-#define CELLS_SIZE (sizeof(char[CELL_ROWS][CELL_COLS]))
+enum {
+    CELL_ROWS = 25,
+    CELL_COLS = 80,
+};
+static const size_t CELLS_SIZE = sizeof(char[CELL_ROWS][CELL_COLS]);
 
-#define CELL_INIT_X (CELL_COLS / 2)
-#define CELL_INIT_Y (CELL_ROWS / 2)
+static const uint8_t CELL_INIT_X = CELL_COLS / 2;
+static const uint8_t CELL_INIT_Y = CELL_ROWS / 2;
 
 struct ALIGNED(4096) Tile {
     time_t createTime;
@@ -64,12 +67,14 @@ static_assert(4096 == sizeof(struct Tile), "struct File is page-sized");
 static_assert(16 == offsetof(struct Tile, cells), "stable cells offset");
 static_assert(2016 == offsetof(struct Tile, colors), "stable colors offset");
 
-#define TILE_ROWS (512)
-#define TILE_COLS (512)
-#define TILES_SIZE (sizeof(struct Tile[TILE_ROWS][TILE_COLS]))
+enum {
+    TILE_ROWS = 512,
+    TILE_COLS = 512,
+};
+static const size_t TILES_SIZE = sizeof(struct Tile[TILE_ROWS][TILE_COLS]);
 
-#define TILE_VOID_X UINT32_MAX
-#define TILE_VOID_Y UINT32_MAX
+static const uint32_t TILE_VOID_X = UINT32_MAX;
+static const uint32_t TILE_VOID_Y = UINT32_MAX;
 
 static const struct {
     uint32_t tileX;
@@ -81,7 +86,7 @@ static const struct {
     { TILE_COLS * 1 / 4, TILE_ROWS * 1 / 4 }, // SE
     { TILE_COLS * 3 / 4, TILE_ROWS * 1 / 4 }, // SW
 };
-#define SPAWNS_LEN (sizeof(SPAWNS) / sizeof(SPAWNS[0]))
+static const size_t SPAWNS_LEN = sizeof(SPAWNS) / sizeof(SPAWNS[0]);
 
 struct ServerMessage {
     enum PACKED {
@@ -110,7 +115,7 @@ struct ServerMessage {
     } data;
 };
 
-#define CURSOR_NONE UINT8_MAX
+static const uint8_t CURSOR_NONE = UINT8_MAX;
 
 struct ClientMessage {
     enum PACKED {

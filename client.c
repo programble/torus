@@ -29,8 +29,10 @@
 
 #include "torus.h"
 
-#define ESC (0x1B)
-#define DEL (0x7F)
+enum {
+    ESC = 0x1B,
+    DEL = 0x7F,
+};
 
 #define CH_COLOR(ch) (ch & A_BOLD ? COLOR_BRIGHT | ch >> 8 & 0xFF : ch >> 8 & 0xFF)
 

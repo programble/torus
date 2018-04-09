@@ -46,16 +46,18 @@ static void clientPut(uint8_t color, char cell) {
     clientMessage(msg);
 }
 
-#define DELAY (50000)
+static const useconds_t DELAY = 50000;
 
-#define R (COLOR_RED)
-#define G (COLOR_GREEN)
-#define Y (COLOR_YELLOW)
-#define B (COLOR_BLUE)
-#define M (COLOR_MAGENTA)
-#define C (COLOR_CYAN)
-#define W (COLOR_WHITE)
-#define I (COLOR_BRIGHT | COLOR_WHITE)
+enum {
+    R = COLOR_RED,
+    G = COLOR_GREEN,
+    Y = COLOR_YELLOW,
+    B = COLOR_BLUE,
+    M = COLOR_MAGENTA,
+    C = COLOR_CYAN,
+    W = COLOR_WHITE,
+    I = COLOR_BRIGHT | COLOR_WHITE,
+};
 
 static void h(void) { clientMove(-1,  0); usleep(DELAY); }
 static void j(void) { clientMove( 0,  1); usleep(DELAY); }
