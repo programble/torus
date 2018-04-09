@@ -46,7 +46,7 @@ static void clientMessage(struct ClientMessage msg) {
 static void clientMove(int8_t dx, int8_t dy) {
     struct ClientMessage msg = {
         .type = CLIENT_MOVE,
-        .data.m = { .dx = dx, .dy = dy },
+        .move = { .dx = dx, .dy = dy },
     };
     clientMessage(msg);
 }
@@ -54,7 +54,7 @@ static void clientMove(int8_t dx, int8_t dy) {
 static void clientPut(uint8_t color, char cell) {
     struct ClientMessage msg = {
         .type = CLIENT_PUT,
-        .data.p = { .color = color, .cell = cell },
+        .put = { .color = color, .cell = cell },
     };
     clientMessage(msg);
 }
@@ -62,7 +62,7 @@ static void clientPut(uint8_t color, char cell) {
 static void clientSpawn(uint8_t spawn) {
     struct ClientMessage msg = {
         .type = CLIENT_SPAWN,
-        .data.s.spawn = spawn,
+        .spawn = spawn,
     };
     clientMessage(msg);
 }
@@ -308,25 +308,25 @@ static void readMessage(void) {
         } break;
 
         case SERVER_MOVE: {
-            move(msg.data.m.cellY, msg.data.m.cellX);
+            move(msg.move.cellY, msg.move.cellX);
             refresh();
         } return;
 
         case SERVER_PUT: {
             serverPut(
-                msg.data.p.cellX,
-                msg.data.p.cellY,
-                msg.data.p.color,
-                msg.data.p.cell
+                msg.put.cellX,
+                msg.put.cellY,
+                msg.put.color,
+                msg.put.cell
             );
         } break;
 
         case SERVER_CURSOR: {
             serverCursor(
-                msg.data.c.oldCellX,
-                msg.data.c.oldCellY,
-                msg.data.c.newCellX,
-                msg.data.c.newCellY
+                msg.cursor.oldCellX,
+                msg.cursor.oldCellY,
+                msg.cursor.newCellX,
+                msg.cursor.newCellY
             );
         } break;
 

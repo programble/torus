@@ -33,7 +33,7 @@ static void clientMessage(struct ClientMessage msg) {
 static void clientMove(int8_t dx, int8_t dy) {
     struct ClientMessage msg = {
         .type = CLIENT_MOVE,
-        .data.m = { .dx = dx, .dy = dy },
+        .move = { .dx = dx, .dy = dy },
     };
     clientMessage(msg);
 }
@@ -41,7 +41,7 @@ static void clientMove(int8_t dx, int8_t dy) {
 static void clientPut(uint8_t color, char cell) {
     struct ClientMessage msg = {
         .type = CLIENT_PUT,
-        .data.p = { .color = color, .cell = cell },
+        .put = { .color = color, .cell = cell },
     };
     clientMessage(msg);
 }

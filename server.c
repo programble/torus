@@ -143,7 +143,7 @@ static void clientRemove(struct Client *client) {
 
     struct ServerMessage msg = {
         .type = SERVER_CURSOR,
-        .data.c = {
+        .cursor = {
             .oldCellX = client->cellX, .oldCellY = client->cellY,
             .newCellX = CURSOR_NONE,   .newCellY = CURSOR_NONE,
         },
@@ -157,7 +157,7 @@ static void clientRemove(struct Client *client) {
 static bool clientCursors(const struct Client *client) {
     struct ServerMessage msg = {
         .type = SERVER_CURSOR,
-        .data.c = { .oldCellX = CURSOR_NONE, .oldCellY = CURSOR_NONE },
+        .cursor = { .oldCellX = CURSOR_NONE, .oldCellY = CURSOR_NONE },
     };
 
     for (struct Client *friend = clientHead; friend; friend = friend->next) {
@@ -165,8 +165,8 @@ static bool clientCursors(const struct Client *client) {
         if (friend->tileX != client->tileX) continue;
         if (friend->tileY != client->tileY) continue;
 
-        msg.data.c.newCellX = friend->cellX;
-        msg.data.c.newCellY = friend->cellY;
+        msg.cursor.newCellX = friend->cellX;
+        msg.cursor.newCellY = friend->cellY;
         if (!clientSend(client, msg)) return false;
     }
     return true;
@@ -175,7 +175,7 @@ static bool clientCursors(const struct Client *client) {
 static bool clientUpdate(const struct Client *client, const struct Client *old) {
     struct ServerMessage msg = {
         .type = SERVER_MOVE,
-        .data.m = { .cellX = client->cellX, .cellY = client->cellY },
+        .move = { .cellX = client->cellX, .cellY = client->cellY },
     };
     if (!clientSend(client, msg)) return false;
 
@@ -187,7 +187,7 @@ static bool clientUpdate(const struct Client *client, const struct Client *old) 
 
         msg = (struct ServerMessage) {
             .type = SERVER_CURSOR,
-            .data.c = {
+            .cursor = {
                 .oldCellX = old->cellX,  .oldCellY = old->cellY,
                 .newCellX = CURSOR_NONE, .newCellY = CURSOR_NONE,
             },
@@ -196,7 +196,7 @@ static bool clientUpdate(const struct Client *client, const struct Client *old) 
 
         msg = (struct ServerMessage) {
             .type = SERVER_CURSOR,
-            .data.c = {
+            .cursor = {
                 .oldCellX = CURSOR_NONE,   .oldCellY = CURSOR_NONE,
                 .newCellX = client->cellX, .newCellY = client->cellY,
             },
@@ -206,7 +206,7 @@ static bool clientUpdate(const struct Client *client, const struct Client *old) 
     } else {
         msg = (struct ServerMessage) {
             .type = SERVER_CURSOR,
-            .data.c = {
+            .cursor = {
                 .oldCellX = old->cellX,    .oldCellY = old->cellY,
                 .newCellX = client->cellX, .newCellY = client->cellY,
             },
@@ -275,7 +275,7 @@ static bool clientPut(const struct Client *client, uint8_t color, char cell) {
 
     struct ServerMessage msg = {
         .type = SERVER_PUT,
-        .data.p = {
+        .put = {
             .cellX = client->cellX,
             .cellY = client->cellY,
             .color = color,
@@ -363,11 +363,11 @@ int main() {
 
         bool success = false;
         if (msg.type == CLIENT_MOVE) {
-            success = clientMove(client, msg.data.m.dx, msg.data.m.dy);
+            success = clientMove(client, msg.move.dx, msg.move.dy);
         } else if (msg.type == CLIENT_PUT) {
-            success = clientPut(client, msg.data.p.color, msg.data.p.cell);
+            success = clientPut(client, msg.put.color, msg.put.cell);
         } else if (msg.type == CLIENT_SPAWN) {
-            success = clientSpawn(client, msg.data.s.spawn);
+            success = clientSpawn(client, msg.spawn);
         }
         if (!success) clientRemove(client);
     }

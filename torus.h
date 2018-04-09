@@ -99,20 +99,20 @@ struct ServerMessage {
         struct {
             uint8_t cellX;
             uint8_t cellY;
-        } m;
+        } move;
         struct {
             uint8_t cellX;
             uint8_t cellY;
             uint8_t color;
             char cell;
-        } p;
+        } put;
         struct {
             uint8_t oldCellX;
             uint8_t oldCellY;
             uint8_t newCellX;
             uint8_t newCellY;
-        } c;
-    } data;
+        } cursor;
+    };
 };
 
 static const uint8_t CURSOR_NONE = UINT8_MAX;
@@ -127,13 +127,11 @@ struct ClientMessage {
         struct {
             int8_t dx;
             int8_t dy;
-        } m;
+        } move;
         struct {
             uint8_t color;
             char cell;
-        } p;
-        struct {
-            uint8_t spawn;
-        } s;
-    } data;
+        } put;
+        uint8_t spawn;
+    };
 };
