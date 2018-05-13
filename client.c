@@ -34,8 +34,6 @@ enum {
     DEL = 0x7F,
 };
 
-#define CH_COLOR(ch) (ch & A_BOLD ? COLOR_BRIGHT | ch >> 8 & 0xFF : ch >> 8 & 0xFF)
-
 static int client;
 
 static void clientMessage(struct ClientMessage msg) {
@@ -65,6 +63,20 @@ static void clientSpawn(uint8_t spawn) {
         .spawn = spawn,
     };
     clientMessage(msg);
+}
+
+static chtype colorAttrs(uint8_t color) {
+    uint8_t bright = color & COLOR_BRIGHT;
+    uint8_t fg = color & 0x07;
+    uint8_t bg = color & 0x70;
+    return COLOR_PAIR(bg >> 1 | fg) | (bright ? A_BOLD : 0);
+}
+
+static uint8_t attrsColor(chtype attrs) {
+    chtype bright = attrs & A_BOLD;
+    short fg = PAIR_NUMBER(attrs) & 007;
+    short bg = PAIR_NUMBER(attrs) & 070;
+    return bg << 1 | fg | (bright ? COLOR_BRIGHT : 0);
 }
 
 static struct {
@@ -110,14 +122,14 @@ static void insertMode(int8_t dx, int8_t dy) {
 }
 
 static void swapCell(int8_t dx, int8_t dy) {
-    uint8_t aColor = CH_COLOR(inch());
-    char aCell = inch() & 0x7F;
+    uint8_t aColor = attrsColor(inch());
+    char aCell = inch() & A_CHARTEXT;
 
     int sy, sx;
     getyx(stdscr, sy, sx);
     move(sy + dy, sx + dx);
-    uint8_t bColor = CH_COLOR(inch());
-    char bCell = inch() & 0x7F;
+    uint8_t bColor = attrsColor(inch());
+    char bCell = inch() & A_CHARTEXT;
     move(sy, sx);
 
     clientPut(bColor, bCell);
@@ -160,7 +172,7 @@ static void readInput(void) {
     }
 
     if (input.mode == MODE_REPLACE) {
-        if (isprint(c)) clientPut(CH_COLOR(inch()), c);
+        if (isprint(c)) clientPut(attrsColor(inch()), c);
         input.mode = MODE_NORMAL;
         return;
     }
@@ -198,10 +210,10 @@ static void readInput(void) {
         case 'r': input.mode = MODE_REPLACE; break;
         case 'p': input.mode = MODE_PUT; break;
         case 'R': input.mode = MODE_DRAW; input.draw = 0; break;
-        case 'x': clientPut(CH_COLOR(inch()), ' '); break;
+        case 'x': clientPut(attrsColor(inch()), ' '); break;
 
         case '~': {
-            clientPut(input.color, inch() & 0x7F);
+            clientPut(input.color, inch() & A_CHARTEXT);
             clientMove(input.dx, input.dy);
         } break;
 
@@ -226,7 +238,7 @@ static void readInput(void) {
         case 'B': swapCell(-1,  1); break;
         case 'N': swapCell( 1,  1); break;
 
-        case '`': input.color = CH_COLOR(inch()); break;
+        case '`': input.color = attrsColor(inch()); break;
 
         case '0': colorFg(COLOR_BLACK);   break;
         case '1': colorFg(COLOR_RED);     break;
@@ -262,9 +274,7 @@ static void readInput(void) {
 }
 
 static void serverPut(uint8_t x, uint8_t y, uint8_t color, char cell) {
-    int attrs = COLOR_PAIR(color & ~COLOR_BRIGHT);
-    if (color & COLOR_BRIGHT) attrs |= A_BOLD;
-    mvaddch(y, x, attrs | cell);
+    mvaddch(y, x, colorAttrs(color) | cell);
 }
 
 static void serverTile(void) {
@@ -358,20 +368,26 @@ static void drawBorder(void) {
 static void initColors(void) {
     if (!has_colors()) {
         endwin();
-        fprintf(stderr, "Sorry, your terminal doesn't support colors!\n");
-        fprintf(stderr, "If you think it does, check TERM.\n");
+        fprintf(
+            stderr,
+            "Sorry, your terminal doesn't support colors!\n"
+            "If you think it does, check TERM.\n"
+        );
         exit(EX_CONFIG);
     }
     start_color();
-    if (COLOR_PAIRS < 103) { // I don't know why, but that's what works.
+    if (COLOR_PAIRS < 64) {
         endwin();
-        fprintf(stderr, "Sorry, your terminal doesn't support enough color pairs!\n");
-        fprintf(stderr, "You probably just need to set TERM=$TERM-256color.\n");
+        fprintf(
+            stderr,
+            "Sorry, your terminal doesn't support enough color pairs!\n"
+            "If you think it does, check TERM.\n"
+        );
         exit(EX_CONFIG);
     }
     for (int bg = COLOR_BLACK; bg < COLOR_BRIGHT; ++bg) {
         for (int fg = COLOR_BLACK; fg < COLOR_BRIGHT; ++fg) {
-            init_pair(bg << 4 | fg, fg, bg);
+            init_pair(PAIR_NUMBER(colorAttrs(bg << 4 | fg)), fg, bg);
         }
     }
 }
