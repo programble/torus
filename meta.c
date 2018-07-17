@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, Curtis McEnroe <curtis@cmcenroe.me>
+/* Copyright (C) 2017  Curtis McEnroe <june@causal.agency>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -21,22 +21,22 @@
 #include "torus.h"
 
 int main() {
-    printf("tileX,tileY,createTime,modifyCount,modifyTime,accessCount,accessTime\n");
-    for (int i = 0;; ++i) {
-        struct Tile tile;
-        size_t count = fread(&tile, sizeof(tile), 1, stdin);
-        if (ferror(stdin)) err(EX_IOERR, "(stdin)");
-        if (!count) return EX_OK;
+	printf("tileX,tileY,createTime,modifyCount,modifyTime,accessCount,accessTime\n");
+	for (int i = 0;; ++i) {
+		struct Tile tile;
+		size_t count = fread(&tile, sizeof(tile), 1, stdin);
+		if (ferror(stdin)) err(EX_IOERR, "(stdin)");
+		if (!count) return EX_OK;
 
-        printf(
-            "%d,%d,%ld,%u,%ld,%u,%ld\n",
-            i % TILE_COLS,
-            i / TILE_COLS,
-            tile.createTime,
-            tile.modifyCount,
-            tile.modifyTime,
-            tile.accessCount,
-            tile.accessTime
-        );
-    }
+		printf(
+			"%d,%d,%ld,%u,%ld,%u,%ld\n",
+			i % TILE_COLS,
+			i / TILE_COLS,
+			tile.createTime,
+			tile.modifyCount,
+			tile.modifyTime,
+			tile.accessCount,
+			tile.accessTime
+		);
+	}
 }

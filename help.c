@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, Curtis McEnroe <curtis@cmcenroe.me>
+/* Copyright (C) 2017  Curtis McEnroe <june@causal.agency>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -26,37 +26,37 @@
 static int client;
 
 static void clientMessage(struct ClientMessage msg) {
-    ssize_t size = send(client, &msg, sizeof(msg), 0);
-    if (size < 0) err(EX_IOERR, "send");
+	ssize_t size = send(client, &msg, sizeof(msg), 0);
+	if (size < 0) err(EX_IOERR, "send");
 }
 
 static void clientMove(int8_t dx, int8_t dy) {
-    struct ClientMessage msg = {
-        .type = CLIENT_MOVE,
-        .move = { .dx = dx, .dy = dy },
-    };
-    clientMessage(msg);
+	struct ClientMessage msg = {
+		.type = CLIENT_MOVE,
+		.move = { .dx = dx, .dy = dy },
+	};
+	clientMessage(msg);
 }
 
 static void clientPut(uint8_t color, char cell) {
-    struct ClientMessage msg = {
-        .type = CLIENT_PUT,
-        .put = { .color = color, .cell = cell },
-    };
-    clientMessage(msg);
+	struct ClientMessage msg = {
+		.type = CLIENT_PUT,
+		.put = { .color = color, .cell = cell },
+	};
+	clientMessage(msg);
 }
 
 static const useconds_t DELAY = 50000;
 
 enum {
-    R = COLOR_RED,
-    G = COLOR_GREEN,
-    Y = COLOR_YELLOW,
-    B = COLOR_BLUE,
-    M = COLOR_MAGENTA,
-    C = COLOR_CYAN,
-    W = COLOR_WHITE,
-    I = COLOR_BRIGHT | COLOR_WHITE,
+	R = COLOR_RED,
+	G = COLOR_GREEN,
+	Y = COLOR_YELLOW,
+	B = COLOR_BLUE,
+	M = COLOR_MAGENTA,
+	C = COLOR_CYAN,
+	W = COLOR_WHITE,
+	I = COLOR_BRIGHT | COLOR_WHITE,
 };
 
 static void h(void) { clientMove(-1,  0); usleep(DELAY); }
@@ -69,116 +69,116 @@ static void b(void) { clientMove(-1,  1); usleep(DELAY); }
 static void n(void) { clientMove( 1,  1); usleep(DELAY); }
 
 static void p(uint8_t color, char cell) {
-    clientPut(color, cell);
-    usleep(DELAY);
+	clientPut(color, cell);
+	usleep(DELAY);
 }
 
 static uint8_t len;
 
 static void s(uint8_t color, const char *str) {
-    for (; *str; ++len, ++str) {
-        clientPut(color, *str);
-        clientMove(1, 0);
-        usleep(DELAY);
-    }
+	for (; *str; ++len, ++str) {
+		clientPut(color, *str);
+		clientMove(1, 0);
+		usleep(DELAY);
+	}
 }
 
 static void r(void) {
-    clientMove(-len, 1);
-    usleep(DELAY);
-    len = 0;
+	clientMove(-len, 1);
+	usleep(DELAY);
+	len = 0;
 }
 
 int main() {
-    client = socket(PF_LOCAL, SOCK_STREAM, 0);
-    if (client < 0) err(EX_OSERR, "socket");
+	client = socket(PF_LOCAL, SOCK_STREAM, 0);
+	if (client < 0) err(EX_OSERR, "socket");
 
-    struct sockaddr_un addr = {
-        .sun_family = AF_LOCAL,
-        .sun_path = "torus.sock",
-    };
-    int error = connect(client, (struct sockaddr *)&addr, sizeof(addr));
-    if (error) err(EX_NOINPUT, "torus.sock");
+	struct sockaddr_un addr = {
+		.sun_family = AF_LOCAL,
+		.sun_path = "torus.sock",
+	};
+	int error = connect(client, (struct sockaddr *)&addr, sizeof(addr));
+	if (error) err(EX_NOINPUT, "torus.sock");
 
-    pid_t pid = fork();
-    if (pid < 0) err(EX_OSERR, "fork");
+	pid_t pid = fork();
+	if (pid < 0) err(EX_OSERR, "fork");
 
-    if (!pid) {
-        for (;;) {
-            char buf[4096];
-            ssize_t size = recv(client, buf, sizeof(buf), 0);
-            if (size < 0) err(EX_IOERR, "recv");
-            if (!size) return EX_OK;
-        }
-    }
+	if (!pid) {
+		for (;;) {
+			char buf[4096];
+			ssize_t size = recv(client, buf, sizeof(buf), 0);
+			if (size < 0) err(EX_IOERR, "recv");
+			if (!size) return EX_OK;
+		}
+	}
 
-    clientMove(-CELL_INIT_X, -CELL_INIT_Y);
-    clientMove(28, 0);
+	clientMove(-CELL_INIT_X, -CELL_INIT_Y);
+	clientMove(28, 0);
 
-    for (;;) {
-        for (int i = 0; i < 10; ++i) {
-            clientMove(0, 1);
-            usleep(DELAY / 5);
-        }
-        for (int i = 0; i < 11; ++i) {
-            for (int j = 0; j < 28; ++j) {
-                clientPut(W, ' ');
-                if (i % 2) clientMove(1, 0);
-                else clientMove(-1, 0);
-                usleep(DELAY / 5);
-            }
-            clientPut(W, ' ');
-            if (i != 10) clientMove(0, -1);
-            usleep(DELAY / 5);
-        }
+	for (;;) {
+		for (int i = 0; i < 10; ++i) {
+			clientMove(0, 1);
+			usleep(DELAY / 5);
+		}
+		for (int i = 0; i < 11; ++i) {
+			for (int j = 0; j < 28; ++j) {
+				clientPut(W, ' ');
+				if (i % 2) clientMove(1, 0);
+				else clientMove(-1, 0);
+				usleep(DELAY / 5);
+			}
+			clientPut(W, ' ');
+			if (i != 10) clientMove(0, -1);
+			usleep(DELAY / 5);
+		}
 
-        j(); l(); l();
-        s(W, "Welcome to "); s(I, "ascii.town"); s(W, "!"); r();
-        r(); r();
+		j(); l(); l();
+		s(W, "Welcome to "); s(I, "ascii.town"); s(W, "!"); r();
+		r(); r();
 
-        n(); n(); s(W, "o-"); s(I, "l");
-        h(); b(); p(W, '\\'); n(); p(I, 'n');
-        y(); h(); p(W, '|'); j(); p(I, 'j');
-        y(); p(W, '/'); b(); p(I, 'b');
-        k(); u(); p(W, '-'); h(); p(I, 'h');
-        u(); p(W, '\\'); y(); p(I, 'y');
-        n(); l(); p(W, '|'); k(); p(I, 'k');
-        n(); p(W, '/');  u(); p(I, 'u');
+		n(); n(); s(W, "o-"); s(I, "l");
+		h(); b(); p(W, '\\'); n(); p(I, 'n');
+		y(); h(); p(W, '|'); j(); p(I, 'j');
+		y(); p(W, '/'); b(); p(I, 'b');
+		k(); u(); p(W, '-'); h(); p(I, 'h');
+		u(); p(W, '\\'); y(); p(I, 'y');
+		n(); l(); p(W, '|'); k(); p(I, 'k');
+		n(); p(W, '/');  u(); p(I, 'u');
 
-        u(); s(W, "    "); len = 0;
+		u(); s(W, "    "); len = 0;
 
-        s(I, "q "); s(W, "quit");    r();
-        s(I, "i "); s(W, "insert");  r();
-        s(I, "r "); s(W, "replace"); r();
-        s(I, "R "); s(W, "draw");    r();
-        s(I, "~ "); s(W, "color");   r();
-        s(I, "` "); s(W, "pipette"); r();
-        s(I, "* "); s(W, "bright");
+		s(I, "q "); s(W, "quit");    r();
+		s(I, "i "); s(W, "insert");  r();
+		s(I, "r "); s(W, "replace"); r();
+		s(I, "R "); s(W, "draw");    r();
+		s(I, "~ "); s(W, "color");   r();
+		s(I, "` "); s(W, "pipette"); r();
+		s(I, "* "); s(W, "bright");
 
-        s(W, "     "); len = 0;
+		s(W, "     "); len = 0;
 
-        clientPut(W, '7'); k();
-        clientPut(C, '6'); k();
-        clientPut(M, '5'); k();
-        clientPut(B, '4'); k();
-        clientPut(Y, '3'); k();
-        clientPut(G, '2'); k();
-        clientPut(R, '1'); k();
+		clientPut(W, '7'); k();
+		clientPut(C, '6'); k();
+		clientPut(M, '5'); k();
+		clientPut(B, '4'); k();
+		clientPut(Y, '3'); k();
+		clientPut(G, '2'); k();
+		clientPut(R, '1'); k();
 
-        l(); n();
+		l(); n();
 
-        clientPut(R << 4, '!'); j();
-        clientPut(G << 4, '@'); j();
-        clientPut(Y << 4, '#'); j();
-        clientPut(B << 4, '$'); j();
-        clientPut(M << 4, '%'); j();
-        clientPut(C << 4, '^'); j();
-        clientPut(W << 4, '&'); j();
+		clientPut(R << 4, '!'); j();
+		clientPut(G << 4, '@'); j();
+		clientPut(Y << 4, '#'); j();
+		clientPut(B << 4, '$'); j();
+		clientPut(M << 4, '%'); j();
+		clientPut(C << 4, '^'); j();
+		clientPut(W << 4, '&'); j();
 
-        h(); k(); k(); k(); k(); k(); k(); k(); k(); k(); h();
+		h(); k(); k(); k(); k(); k(); k(); k(); k(); k(); h();
 
-        sleep(30);
+		sleep(30);
 
-        u(); l(); l(); l();
-    }
+		u(); l(); l(); l();
+	}
 }

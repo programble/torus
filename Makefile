@@ -45,5 +45,3 @@ tags: *.h *.c
 
 clean:
 	rm -f tags $(BINS) termcap termcap.db chroot.tar
-
-.PHONY: all clean

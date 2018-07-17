@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, Curtis McEnroe <curtis@cmcenroe.me>
+/* Copyright (C) 2017  Curtis McEnroe <june@causal.agency>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -34,20 +34,20 @@
 #undef COLOR_WHITE
 
 enum {
-    COLOR_BLACK,
-    COLOR_RED,
-    COLOR_GREEN,
-    COLOR_YELLOW,
-    COLOR_BLUE,
-    COLOR_MAGENTA,
-    COLOR_CYAN,
-    COLOR_WHITE,
-    COLOR_BRIGHT,
+	COLOR_BLACK,
+	COLOR_RED,
+	COLOR_GREEN,
+	COLOR_YELLOW,
+	COLOR_BLUE,
+	COLOR_MAGENTA,
+	COLOR_CYAN,
+	COLOR_WHITE,
+	COLOR_BRIGHT,
 };
 
 enum {
-    CELL_ROWS = 25,
-    CELL_COLS = 80,
+	CELL_ROWS = 25,
+	CELL_COLS = 80,
 };
 static const size_t CELLS_SIZE = sizeof(char[CELL_ROWS][CELL_COLS]);
 
@@ -55,21 +55,21 @@ static const uint8_t CELL_INIT_X = CELL_COLS / 2;
 static const uint8_t CELL_INIT_Y = CELL_ROWS / 2;
 
 struct ALIGNED(4096) Tile {
-    time_t createTime;
-    time_t modifyTime;
-    char ALIGNED(16) cells[CELL_ROWS][CELL_COLS];
-    uint8_t ALIGNED(16) colors[CELL_ROWS][CELL_COLS];
-    uint32_t modifyCount;
-    uint32_t accessCount;
-    time_t accessTime;
+	time_t createTime;
+	time_t modifyTime;
+	char ALIGNED(16) cells[CELL_ROWS][CELL_COLS];
+	uint8_t ALIGNED(16) colors[CELL_ROWS][CELL_COLS];
+	uint32_t modifyCount;
+	uint32_t accessCount;
+	time_t accessTime;
 };
-static_assert(4096 == sizeof(struct Tile), "struct File is page-sized");
+static_assert(4096 == sizeof(struct Tile), "struct Tile is page-sized");
 static_assert(16 == offsetof(struct Tile, cells), "stable cells offset");
 static_assert(2016 == offsetof(struct Tile, colors), "stable colors offset");
 
 enum {
-    TILE_ROWS = 512,
-    TILE_COLS = 512,
+	TILE_ROWS = 512,
+	TILE_COLS = 512,
 };
 static const size_t TILES_SIZE = sizeof(struct Tile[TILE_ROWS][TILE_COLS]);
 
@@ -77,61 +77,61 @@ static const uint32_t TILE_VOID_X = UINT32_MAX;
 static const uint32_t TILE_VOID_Y = UINT32_MAX;
 
 static const struct {
-    uint32_t tileX;
-    uint32_t tileY;
+	uint32_t tileX;
+	uint32_t tileY;
 } SPAWNS[] = {
-    { 0, 0 },
-    { TILE_COLS * 3 / 4, TILE_ROWS * 3 / 4 }, // NW
-    { TILE_COLS * 1 / 4, TILE_ROWS * 3 / 4 }, // NE
-    { TILE_COLS * 1 / 4, TILE_ROWS * 1 / 4 }, // SE
-    { TILE_COLS * 3 / 4, TILE_ROWS * 1 / 4 }, // SW
+	{ 0, 0 },
+	{ TILE_COLS * 3 / 4, TILE_ROWS * 3 / 4 }, // NW
+	{ TILE_COLS * 1 / 4, TILE_ROWS * 3 / 4 }, // NE
+	{ TILE_COLS * 1 / 4, TILE_ROWS * 1 / 4 }, // SE
+	{ TILE_COLS * 3 / 4, TILE_ROWS * 1 / 4 }, // SW
 };
 static const size_t SPAWNS_LEN = sizeof(SPAWNS) / sizeof(SPAWNS[0]);
 
 struct ServerMessage {
-    enum PACKED {
-        SERVER_TILE,
-        SERVER_MOVE,
-        SERVER_PUT,
-        SERVER_CURSOR,
-    } type;
-    union {
-        struct {
-            uint8_t cellX;
-            uint8_t cellY;
-        } move;
-        struct {
-            uint8_t cellX;
-            uint8_t cellY;
-            uint8_t color;
-            char cell;
-        } put;
-        struct {
-            uint8_t oldCellX;
-            uint8_t oldCellY;
-            uint8_t newCellX;
-            uint8_t newCellY;
-        } cursor;
-    };
+	enum PACKED {
+		SERVER_TILE,
+		SERVER_MOVE,
+		SERVER_PUT,
+		SERVER_CURSOR,
+	} type;
+	union {
+		struct {
+			uint8_t cellX;
+			uint8_t cellY;
+		} move;
+		struct {
+			uint8_t cellX;
+			uint8_t cellY;
+			uint8_t color;
+			char cell;
+		} put;
+		struct {
+			uint8_t oldCellX;
+			uint8_t oldCellY;
+			uint8_t newCellX;
+			uint8_t newCellY;
+		} cursor;
+	};
 };
 
 static const uint8_t CURSOR_NONE = UINT8_MAX;
 
 struct ClientMessage {
-    enum PACKED {
-        CLIENT_MOVE,
-        CLIENT_PUT,
-        CLIENT_SPAWN,
-    } type;
-    union {
-        struct {
-            int8_t dx;
-            int8_t dy;
-        } move;
-        struct {
-            uint8_t color;
-            char cell;
-        } put;
-        uint8_t spawn;
-    };
+	enum PACKED {
+		CLIENT_MOVE,
+		CLIENT_PUT,
+		CLIENT_SPAWN,
+	} type;
+	union {
+		struct {
+			int8_t dx;
+			int8_t dy;
+		} move;
+		struct {
+			uint8_t color;
+			char cell;
+		} put;
+		uint8_t spawn;
+	};
 };

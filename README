@@ -2,14 +2,14 @@ Welcome to ascii.town!
 
 This software targets FreeBSD and Darwin.
 
-    torus.h        Shared structures and message protocol.
-    server.c       Maps torus.dat and listens on torus.sock.
-    client.c       Curses client.
-    help.c         Automated client which redraws a helpful banner.
-    meta.c         Exports metadata from data file to CSV.
-    merge.c        Interactively merges two data files.
-    snapshot.sh    Snapshots data file, appropriate for cron.
+	torus.h        Shared structures and message protocol.
+	server.c       Maps torus.dat and listens on torus.sock.
+	client.c       Curses client.
+	help.c         Automated client which redraws a helpful banner.
+	meta.c         Exports metadata from data file to CSV.
+	merge.c        Interactively merges two data files.
+	snapshot.sh    Snapshots data file, appropriate for cron.
 
-    sshd_config    Anonymous login to chrooted client.
-    termcap.diff   Patch for bright colors in xterm and rxvt.
-    index.html     Friendly directions.
+	sshd_config    Anonymous login to chrooted client.
+	termcap.diff   Patch for bright colors in xterm and rxvt.
+	index.html     Friendly directions.

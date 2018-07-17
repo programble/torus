@@ -1,13 +1,13 @@
 UsePAM no
 
 Match User torus
-    PasswordAuthentication yes
-    PermitEmptyPasswords yes
-    ChrootDirectory /home/torus
-    ForceCommand client
+	PasswordAuthentication yes
+	PermitEmptyPasswords yes
+	ChrootDirectory /home/torus
+	ForceCommand client
 
-    AllowAgentForwarding no
-    AllowTcpForwarding no
-    AllowStreamLocalForwarding no
-    MaxSessions 1
-    X11Forwarding no
+	AllowAgentForwarding no
+	AllowTcpForwarding no
+	AllowStreamLocalForwarding no
+	MaxSessions 1
+	X11Forwarding no
