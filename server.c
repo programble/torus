@@ -287,6 +287,33 @@ static bool clientPut(const struct Client *client, uint8_t color, char cell) {
 	return success;
 }
 
+static bool clientMap(const struct Client *client) {
+	int32_t mapY = (int32_t)client->tileY - MAP_ROWS / 2;
+	int32_t mapX = (int32_t)client->tileX - MAP_COLS / 2;
+
+	struct Map map;
+	for (int32_t y = 0; y < MAP_ROWS; ++y) {
+		for (int32_t x = 0; x < MAP_COLS; ++x) {
+			uint32_t tileY = ((mapY + y) % TILE_ROWS + TILE_ROWS) % TILE_ROWS;
+			uint32_t tileX = ((mapX + x) % TILE_COLS + TILE_COLS) % TILE_COLS;
+
+			const struct Tile *tile = &tiles[tileY * TILE_ROWS + tileX];
+			map.tiles[y][x] = (struct MapTile) {
+				.createTime = tile->createTime,
+				.modifyTime = tile->modifyTime,
+				.accessTime = tile->accessTime,
+				.modifyCount = tile->modifyCount,
+				.accessCount = tile->accessCount,
+			};
+		}
+	}
+
+	struct ServerMessage msg = { .type = SERVER_MAP };
+	if (!clientSend(client, msg)) return false;
+	if (0 > send(client->fd, &map, sizeof(map), 0)) return false;
+	return true;
+}
+
 int main() {
 	int error;
 
@@ -362,12 +389,15 @@ int main() {
 		}
 
 		bool success = false;
-		if (msg.type == CLIENT_MOVE) {
-			success = clientMove(client, msg.move.dx, msg.move.dy);
-		} else if (msg.type == CLIENT_PUT) {
-			success = clientPut(client, msg.put.color, msg.put.cell);
-		} else if (msg.type == CLIENT_SPAWN) {
-			success = clientSpawn(client, msg.spawn);
+		switch (msg.type) {
+			break; case CLIENT_MOVE: {
+				success = clientMove(client, msg.move.dx, msg.move.dy);
+			}
+			break; case CLIENT_PUT: {
+				success = clientPut(client, msg.put.color, msg.put.cell);
+			}
+			break; case CLIENT_SPAWN: success = clientSpawn(client, msg.spawn);
+			break; case CLIENT_MAP: success = clientMap(client);
 		}
 		if (!success) clientRemove(client);
 	}

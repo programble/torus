@@ -88,12 +88,28 @@ static const struct {
 };
 static const size_t SPAWNS_LEN = sizeof(SPAWNS) / sizeof(SPAWNS[0]);
 
+enum {
+	MAP_ROWS = 11,
+	MAP_COLS = 11,
+};
+
+struct Map {
+	struct MapTile {
+		time_t createTime;
+		time_t modifyTime;
+		time_t accessTime;
+		uint32_t modifyCount;
+		uint32_t accessCount;
+	} tiles[MAP_ROWS][MAP_COLS];
+};
+
 struct ServerMessage {
 	enum PACKED {
 		SERVER_TILE,
 		SERVER_MOVE,
 		SERVER_PUT,
 		SERVER_CURSOR,
+		SERVER_MAP,
 	} type;
 	union {
 		struct {
@@ -122,6 +138,7 @@ struct ClientMessage {
 		CLIENT_MOVE,
 		CLIENT_PUT,
 		CLIENT_SPAWN,
+		CLIENT_MAP,
 	} type;
 	union {
 		struct {
