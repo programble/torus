@@ -24,6 +24,8 @@
 #define PACKED __attribute__((packed))
 #define ALIGNED(x) __attribute__((aligned(x)))
 
+#define ARRAY_LEN(a) (sizeof(a) / sizeof((a)[0]))
+
 #undef COLOR_BLACK
 #undef COLOR_RED
 #undef COLOR_GREEN
@@ -86,7 +88,6 @@ static const struct {
 	{ TILE_COLS * 1 / 4, TILE_ROWS * 1 / 4 }, // SE
 	{ TILE_COLS * 3 / 4, TILE_ROWS * 1 / 4 }, // SW
 };
-static const size_t SPAWNS_LEN = sizeof(SPAWNS) / sizeof(SPAWNS[0]);
 
 enum {
 	MAP_ROWS = 11,

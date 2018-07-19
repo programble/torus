@@ -218,7 +218,7 @@ static bool clientUpdate(const struct Client *client, const struct Client *old) 
 }
 
 static bool clientSpawn(struct Client *client, uint8_t spawn) {
-	if (spawn >= SPAWNS_LEN) return false;
+	if (spawn >= ARRAY_LEN(SPAWNS)) return false;
 	struct Client old = *client;
 	client->tileX = SPAWNS[spawn].tileX;
 	client->tileY = SPAWNS[spawn].tileY;

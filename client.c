@@ -197,7 +197,7 @@ static void readInput(void) {
 
 		break; case 'q': endwin(); exit(EX_OK);
 		break; case 'Q': {
-			if ((input.color & 0x07) < SPAWNS_LEN) {
+			if ((input.color & 0x07) < ARRAY_LEN(SPAWNS)) {
 				clientSpawn(input.color & 0x07);
 			} else {
 				clientSpawn(0);
