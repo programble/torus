@@ -137,61 +137,7 @@ static void swapCell(int8_t dx, int8_t dy) {
 	clientPut(aColor, aCell);
 }
 
-static void readInput(void) {
-	int c = getch();
-
-	if (input.mode == MODE_INSERT) {
-		if (c == ESC) {
-			input.mode = MODE_NORMAL;
-			clientMove(-input.dx, -input.dy);
-		} else if (!input.dx && !input.dy) {
-			switch (c) {
-				break; case 'h': insertMode(-1,  0);
-				break; case 'j': insertMode( 0,  1);
-				break; case 'k': insertMode( 0, -1);
-				break; case 'l': insertMode( 1,  0);
-				break; case 'y': insertMode(-1, -1);
-				break; case 'u': insertMode( 1, -1);
-				break; case 'b': insertMode(-1,  1);
-				break; case 'n': insertMode( 1,  1);
-			}
-		} else if (c == '\b' || c == DEL) {
-			clientMove(-input.dx, -input.dy);
-			clientPut(input.color, ' ');
-			input.len--;
-		} else if (c == '\n') {
-			clientMove(input.dy, input.dx);
-			clientMove(-input.dx * input.len, -input.dy * input.len);
-			input.len = 0;
-		} else if (isprint(c)) {
-			clientPut(input.color, c);
-			clientMove(input.dx, input.dy);
-			input.len++;
-		}
-		return;
-	}
-
-	if (input.mode == MODE_REPLACE) {
-		if (isprint(c)) clientPut(attrsColor(inch()), c);
-		input.mode = MODE_NORMAL;
-		return;
-	}
-
-	if (input.mode == MODE_PUT) {
-		if (isprint(c)) clientPut(input.color, c);
-		input.mode = MODE_NORMAL;
-		return;
-	}
-
-	if (input.mode == MODE_DRAW && !input.draw) {
-		if (c == ESC) input.mode = MODE_NORMAL;
-		if (isprint(c)) {
-			input.draw = c;
-			clientPut(input.color, c);
-		}
-		return;
-	}
-
+static void inputNormal(int c) {
 	switch (c) {
 		break; case ESC: input.mode = MODE_NORMAL;
 
@@ -267,8 +213,69 @@ static void readInput(void) {
 		break; case KEY_UP:    clientMove( 0, -1);
 		break; case KEY_RIGHT: clientMove( 1,  0);
 	}
+}
 
-	if (input.mode == MODE_DRAW && input.draw) clientPut(input.color, input.draw);
+static void inputInsert(int c) {
+	if (c == ESC) {
+		input.mode = MODE_NORMAL;
+		clientMove(-input.dx, -input.dy);
+	} else if (!input.dx && !input.dy) {
+		switch (c) {
+			break; case 'h': insertMode(-1,  0);
+			break; case 'j': insertMode( 0,  1);
+			break; case 'k': insertMode( 0, -1);
+			break; case 'l': insertMode( 1,  0);
+			break; case 'y': insertMode(-1, -1);
+			break; case 'u': insertMode( 1, -1);
+			break; case 'b': insertMode(-1,  1);
+			break; case 'n': insertMode( 1,  1);
+		}
+	} else if (c == '\b' || c == DEL) {
+		clientMove(-input.dx, -input.dy);
+		clientPut(input.color, ' ');
+		input.len--;
+	} else if (c == '\n') {
+		clientMove(input.dy, input.dx);
+		clientMove(-input.dx * input.len, -input.dy * input.len);
+		input.len = 0;
+	} else if (isprint(c)) {
+		clientPut(input.color, c);
+		clientMove(input.dx, input.dy);
+		input.len++;
+	}
+}
+
+static void inputReplace(int c) {
+	if (isprint(c)) clientPut(attrsColor(inch()), c);
+	input.mode = MODE_NORMAL;
+}
+
+static void inputPut(int c) {
+	if (isprint(c)) clientPut(input.color, c);
+	input.mode = MODE_NORMAL;
+}
+
+static void inputDraw(int c) {
+	if (input.draw) {
+		inputNormal(c);
+		clientPut(input.color, input.draw);
+	} else if (isprint(c)) {
+		input.draw = c;
+		clientPut(input.color, c);
+	} else if (c == ESC) {
+		input.mode = MODE_NORMAL;
+	}
+}
+
+static void readInput(void) {
+	int c = getch();
+	switch (input.mode) {
+		break; case MODE_NORMAL:  inputNormal(c);
+		break; case MODE_INSERT:  inputInsert(c);
+		break; case MODE_REPLACE: inputReplace(c);
+		break; case MODE_PUT:     inputPut(c);
+		break; case MODE_DRAW:    inputDraw(c);
+	}
 }
 
 static void serverPut(uint8_t x, uint8_t y, uint8_t color, char cell) {
