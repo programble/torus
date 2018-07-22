@@ -31,6 +31,7 @@ chroot.tar: server client help termcap.db
 	install -o root -g wheel -m 555 /libexec/ld-elf.so.1 root/libexec
 	install -o root -g wheel -m 444 \
 	    /lib/libc.so.7 \
+		/lib/libm.so.5 \
 	    /lib/libedit.so.7 \
 	    /lib/libncurses.so.8 \
 	    /lib/libncursesw.so.8 \
