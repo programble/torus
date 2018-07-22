@@ -18,6 +18,7 @@
 #include <curses.h>
 #include <err.h>
 #include <errno.h>
+#include <math.h>
 #include <poll.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -65,6 +66,11 @@ static void clientSpawn(uint8_t spawn) {
 	clientMessage(msg);
 }
 
+static void clientMap(void) {
+	struct ClientMessage msg = { .type = CLIENT_MAP };
+	clientMessage(msg);
+}
+
 static chtype colorAttrs(uint8_t color) {
 	uint8_t bright = color & COLOR_BRIGHT;
 	uint8_t fg = color & 0x07;
@@ -84,6 +90,7 @@ static struct {
 	uint8_t color;
 	enum {
 		MODE_NORMAL,
+		MODE_MAP,
 		MODE_INSERT,
 		MODE_REPLACE,
 		MODE_PUT,
@@ -149,6 +156,7 @@ static void inputNormal(int c) {
 				clientSpawn(0);
 			}
 		}
+		break; case 'm': clientMap();
 
 		break; case 'i': insertMode(1, 0);
 		break; case 'a': clientMove(1, 0); insertMode(1, 0);
@@ -215,6 +223,12 @@ static void inputNormal(int c) {
 	}
 }
 
+static void inputMap(void) {
+	input.mode = MODE_NORMAL;
+	curs_set(1);
+	touchwin(stdscr);
+}
+
 static void inputInsert(int c) {
 	if (c == ESC) {
 		input.mode = MODE_NORMAL;
@@ -271,6 +285,7 @@ static void readInput(void) {
 	int c = getch();
 	switch (input.mode) {
 		break; case MODE_NORMAL:  inputNormal(c);
+		break; case MODE_MAP:     inputMap();
 		break; case MODE_INSERT:  inputInsert(c);
 		break; case MODE_REPLACE: inputReplace(c);
 		break; case MODE_PUT:     inputPut(c);
@@ -308,6 +323,69 @@ static void serverCursor(uint8_t oldX, uint8_t oldY, uint8_t newX, uint8_t newY)
 	}
 }
 
+static WINDOW *mapFrame;
+static WINDOW *mapWindow;
+
+static const char MAP_CELLS[] = " -~=+:$%#";
+static const uint8_t MAP_COLORS[] = {
+	COLOR_BLUE,    COLOR_BRIGHT | COLOR_BLUE,
+	COLOR_CYAN,    COLOR_BRIGHT | COLOR_CYAN,
+	COLOR_GREEN,   COLOR_BRIGHT | COLOR_GREEN,
+	COLOR_YELLOW,  COLOR_BRIGHT | COLOR_YELLOW,
+	COLOR_RED,     COLOR_BRIGHT | COLOR_RED,
+	COLOR_MAGENTA, COLOR_BRIGHT | COLOR_MAGENTA,
+	COLOR_WHITE,   COLOR_BRIGHT | COLOR_WHITE,
+};
+
+static void serverMap(void) {
+	struct Map map;
+	ssize_t size = recv(client, &map, sizeof(map), 0);
+	if (size < 0) err(EX_IOERR, "recv");
+	if ((size_t)size < sizeof(map)) errx(EX_PROTOCOL, "This map is incomplete...");
+
+	uint32_t countMax = 0;
+	time_t timeNow = time(NULL);
+	time_t timeMin = timeNow;
+	for (int y = 0; y < MAP_ROWS; ++y) {
+		for (int x = 0; x < MAP_COLS; ++x) {
+			struct MapTile tile = map.tiles[y][x];
+			if (countMax < tile.modifyCount) countMax = tile.modifyCount;
+			if (tile.modifyTime && timeMin > tile.modifyTime) {
+				timeMin = tile.modifyTime;
+			}
+		}
+	}
+
+	for (int y = 0; y < MAP_ROWS; ++y) {
+		for (int x = 0; x < MAP_COLS; ++x) {
+			struct MapTile tile = map.tiles[y][x];
+
+			double count = (tile.modifyCount)
+				? log(tile.modifyCount) / log(countMax)
+				: 0.0;
+			double time = (tile.modifyTime)
+				? (double)(tile.modifyTime - timeMin) / (double)(timeNow - timeMin)
+				: 0.0;
+			count *= ARRAY_LEN(MAP_CELLS) - 2;
+			time *= ARRAY_LEN(MAP_COLORS) - 1;
+
+			char cell = MAP_CELLS[(int)round(count)];
+			chtype attrs = colorAttrs(MAP_COLORS[(int)round(time)]);
+			if (y == MAP_ROWS / 2 && x == MAP_COLS / 2) {
+				attrs |= A_REVERSE;
+			}
+
+			wmove(mapWindow, y, 3 * x);
+			waddch(mapWindow, attrs | cell);
+			waddch(mapWindow, attrs | cell);
+			waddch(mapWindow, attrs | cell);
+		}
+	}
+
+	input.mode = MODE_MAP;
+	curs_set(0);
+}
+
 static void readMessage(void) {
 	struct ServerMessage msg;
 	ssize_t size = recv(client, &msg, sizeof(msg), 0);
@@ -316,18 +394,9 @@ static void readMessage(void) {
 
 	int sy, sx;
 	getyx(stdscr, sy, sx);
-
 	switch (msg.type) {
-		break; case SERVER_TILE: {
-			serverTile();
-		}
-
-		break; case SERVER_MOVE: {
-			move(msg.move.cellY, msg.move.cellX);
-			refresh();
-			return;
-		}
-
+		break; case SERVER_TILE: serverTile();
+		break; case SERVER_MOVE: move(msg.move.cellY, msg.move.cellX); return;
 		break; case SERVER_PUT: {
 			serverPut(
 				msg.put.cellX,
@@ -336,7 +405,6 @@ static void readMessage(void) {
 				msg.put.cell
 			);
 		}
-
 		break; case SERVER_CURSOR: {
 			serverCursor(
 				msg.cursor.oldCellX,
@@ -345,33 +413,30 @@ static void readMessage(void) {
 				msg.cursor.newCellY
 			);
 		}
-
+		break; case SERVER_MAP: serverMap();
 		break; default: errx(EX_PROTOCOL, "I don't know what %d means!", msg.type);
 	}
-
 	move(sy, sx);
-	refresh();
 }
 
-static void drawBorder(void) {
-	if (LINES < CELL_ROWS || COLS < CELL_COLS) {
-		endwin();
-		fprintf(stderr, "Sorry, your terminal is too small!\n");
-		fprintf(stderr, "It needs to be at least 80x25 characters.\n");
-		exit(EX_CONFIG);
+static void draw(void) {
+	wnoutrefresh(stdscr);
+	if (input.mode == MODE_MAP) {
+		touchwin(mapFrame);
+		touchwin(mapWindow);
+		wnoutrefresh(mapFrame);
+		wnoutrefresh(mapWindow);
 	}
-	if (LINES > CELL_ROWS) {
-		mvhline(CELL_ROWS, 0, 0, CELL_COLS);
-	}
-	if (COLS > CELL_COLS) {
-		mvvline(0, CELL_COLS, 0, CELL_ROWS);
-	}
-	if (LINES > CELL_ROWS && COLS > CELL_COLS) {
-		mvaddch(CELL_ROWS, CELL_COLS, ACS_LRCORNER);
-	}
+	doupdate();
 }
 
-static void initColors(void) {
+static void curse(void) {
+	initscr();
+	cbreak();
+	noecho();
+	keypad(stdscr, true);
+	set_escdelay(100);
+
 	if (!has_colors()) {
 		endwin();
 		fprintf(
@@ -396,6 +461,36 @@ static void initColors(void) {
 			init_pair(PAIR_NUMBER(colorAttrs(bg << 4 | fg)), fg, bg);
 		}
 	}
+
+	if (LINES < CELL_ROWS || COLS < CELL_COLS) {
+		endwin();
+		fprintf(stderr, "Sorry, your terminal is too small!\n");
+		fprintf(stderr, "It needs to be at least 80x25 characters.\n");
+		exit(EX_CONFIG);
+	}
+	if (LINES > CELL_ROWS) {
+		mvhline(CELL_ROWS, 0, 0, CELL_COLS);
+	}
+	if (COLS > CELL_COLS) {
+		mvvline(0, CELL_COLS, 0, CELL_ROWS);
+	}
+	if (LINES > CELL_ROWS && COLS > CELL_COLS) {
+		mvaddch(CELL_ROWS, CELL_COLS, ACS_LRCORNER);
+	}
+
+	mapFrame = newwin(
+		MAP_ROWS + 2,
+		3 * MAP_COLS + 2,
+		CELL_INIT_Y - MAP_ROWS / 2 - 1,
+		CELL_INIT_X - 3 * MAP_COLS / 2 - 1
+	);
+	mapWindow = newwin(
+		MAP_ROWS,
+		3 * MAP_COLS,
+		CELL_INIT_Y - MAP_ROWS / 2,
+		CELL_INIT_X - 3 * MAP_COLS / 2
+	);
+	box(mapFrame, 0, 0);
 }
 
 int main() {
@@ -409,14 +504,7 @@ int main() {
 	int error = connect(client, (struct sockaddr *)&addr, sizeof(addr));
 	if (error) err(EX_NOINPUT, "torus.sock");
 
-	initscr();
-	cbreak();
-	noecho();
-	keypad(stdscr, true);
-	set_escdelay(100);
-
-	initColors();
-	drawBorder();
+	curse();
 
 	struct pollfd fds[2] = {
 		{ .fd = STDIN_FILENO, .events = POLLIN },
@@ -429,5 +517,6 @@ int main() {
 
 		if (fds[0].revents) readInput();
 		if (fds[1].revents) readMessage();
+		draw();
 	}
 }
