@@ -1,7 +1,7 @@
 USER = torus
 BINS = server client help meta merge
 CFLAGS += -Wall -Wextra -Wpedantic
-LDLIBS = -lncurses
+LDLIBS = -lm -lncurses
 
 all: tags $(BINS)
 
