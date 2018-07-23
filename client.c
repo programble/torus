@@ -360,10 +360,10 @@ static void serverMap(void) {
 		for (int x = 0; x < MAP_COLS; ++x) {
 			struct MapTile tile = map.tiles[y][x];
 
-			double count = (tile.modifyCount)
+			double count = (tile.modifyCount && countMax > 1)
 				? log(tile.modifyCount) / log(countMax)
 				: 0.0;
-			double time = (tile.modifyTime)
+			double time = (tile.modifyTime && timeNow - timeMin)
 				? (double)(tile.modifyTime - timeMin) / (double)(timeNow - timeMin)
 				: 0.0;
 			count *= ARRAY_LEN(MAP_CELLS) - 2;
