@@ -338,11 +338,8 @@ int main() {
 	int kq = kqueue();
 	if (kq < 0) err(EX_OSERR, "kqueue");
 
-	struct kevent event = {
-		.ident = server,
-		.filter = EVFILT_READ,
-		.flags = EV_ADD,
-	};
+	struct kevent event;
+	EV_SET(&event, server, EVFILT_READ, EV_ADD, 0, 0, 0);
 	int nevents = kevent(kq, &event, 1, NULL, 0, NULL);
 	if (nevents < 0) err(EX_OSERR, "kevent");
 
@@ -361,12 +358,7 @@ int main() {
 
 			struct Client *client = clientAdd(fd);
 
-			struct kevent event = {
-				.ident = fd,
-				.filter = EVFILT_READ,
-				.flags = EV_ADD,
-				.udata = client,
-			};
+			EV_SET(&event, fd, EVFILT_READ, EV_ADD, 0, 0, client);
 			nevents = kevent(kq, &event, 1, NULL, 0, NULL);
 			if (nevents < 0) err(EX_IOERR, "kevent");
 
@@ -375,7 +367,7 @@ int main() {
 			continue;
 		}
 
-		struct Client *client = event.udata;
+		struct Client *client = (struct Client *)event.udata;
 		if (event.flags & EV_EOF) {
 			clientRemove(client);
 			continue;
