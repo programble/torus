@@ -29,7 +29,7 @@ int main() {
 		if (!count) return EX_OK;
 
 		printf(
-			"%d,%d,%ld,%u,%ld,%u,%ld\n",
+			"%d,%d,%jd,%u,%jd,%u,%jd\n",
 			i % TILE_COLS,
 			i / TILE_COLS,
 			tile.createTime,
