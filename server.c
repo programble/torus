@@ -350,7 +350,6 @@ int main() {
 		if (!event.udata) {
 			int fd = accept(server, NULL, NULL);
 			if (fd < 0) err(EX_IOERR, "accept");
-			fcntl(fd, F_SETFL, O_NONBLOCK);
 
 			int on = 1;
 			error = setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, &on, sizeof(on));
