@@ -356,6 +356,10 @@ int main() {
 			error = setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, &on, sizeof(on));
 			if (error) err(EX_IOERR, "setsockopt");
 
+			int size = 2 * sizeof(struct Tile);
+			error = setsockopt(fd, SOL_SOCKET, SO_SNDBUF, &size, sizeof(size));
+			if (error) err(EX_IOERR, "setsockopt");
+
 			struct Client *client = clientAdd(fd);
 
 			EV_SET(&event, fd, EVFILT_READ, EV_ADD, 0, 0, client);
