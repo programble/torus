@@ -49,6 +49,7 @@ static void clientPut(uint8_t color, char cell) {
 static const useconds_t DELAY = 50000;
 
 enum {
+	K = COLOR_BLACK,
 	R = COLOR_RED,
 	G = COLOR_GREEN,
 	Y = COLOR_YELLOW,
@@ -164,9 +165,11 @@ int main() {
 		clientPut(Y, '3'); k();
 		clientPut(G, '2'); k();
 		clientPut(R, '1'); k();
+		clientPut(K, '0');
 
-		l(); n();
+		l(); l();
 
+		clientPut(K << 4, ')'); j();
 		clientPut(R << 4, '!'); j();
 		clientPut(G << 4, '@'); j();
 		clientPut(Y << 4, '#'); j();

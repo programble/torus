@@ -11,13 +11,7 @@ $(BINS): torus.h
 .c:
 	$(CC) $(CFLAGS) $(LDFLAGS) $< $(LDLIBS) -o $@
 
-termcap: termcap.diff
-	patch -p0 -o termcap < termcap.diff
-
-termcap.db: termcap
-	cap_mkdb termcap
-
-chroot.tar: server client help termcap.db
+chroot.tar: server client help
 	mkdir -p root
 	install -d -o root -g wheel \
 	    root/bin \
@@ -36,7 +30,7 @@ chroot.tar: server client help termcap.db
 	    /lib/libncurses.so.8 \
 	    /lib/libncursesw.so.8 \
 	    root/lib
-	install -o root -g wheel -m 444 termcap.db root/usr/share/misc
+	install -o root -g wheel -m 444 /usr/share/misc/termcap.db root/usr/share/misc
 	install -o root -g wheel -m 555 /bin/sh root/bin
 	install -o root -g wheel -m 555 server client help root/bin
 	tar -c -f chroot.tar -C root bin home lib libexec usr
@@ -45,4 +39,4 @@ tags: *.h *.c
 	ctags -w *.h *.c
 
 clean:
-	rm -f tags $(BINS) termcap termcap.db chroot.tar
+	rm -f tags $(BINS) chroot.tar

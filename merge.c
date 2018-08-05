@@ -22,15 +22,33 @@
 
 #include "torus.h"
 
+static void colorPairs(void) {
+	assume_default_colors(0, 0);
+	if (COLORS >= 16) {
+		for (short pair = 1; pair < 0x80; ++pair) {
+			init_pair(pair, pair & 0x0F, (pair & 0xF0) >> 4);
+		}
+	} else {
+		for (short pair = 1; pair < 0100; ++pair) {
+			init_pair(pair, pair & 007, (pair & 070) >> 3);
+		}
+	}
+}
+
+static chtype colorAttr(uint8_t color) {
+	if (COLORS >= 16) return COLOR_PAIR(color);
+	chtype bold = (color & COLOR_BRIGHT) ? A_BOLD : A_NORMAL;
+	short pair = (color & 0x70) >> 1 | (color & 0x07);
+	return bold | COLOR_PAIR(pair);
+}
+
 static void drawTile(int offsetY, const struct Tile *tile) {
 	for (uint8_t y = 0; y < CELL_ROWS; ++y) {
 		for (uint8_t x = 0; x < CELL_COLS; ++x) {
 			uint8_t color = tile->colors[y][x];
 			char cell = tile->cells[y][x];
 
-			int attrs = COLOR_PAIR(color & ~COLOR_BRIGHT);
-			if (color & COLOR_BRIGHT) attrs |= A_BOLD;
-			mvaddch(offsetY + y, x, attrs | cell);
+			mvaddch(offsetY + y, x, colorAttr(color) | cell);
 		}
 	}
 }
@@ -54,17 +72,15 @@ int main(int argc, char *argv[]) {
 	set_escdelay(100);
 
 	start_color();
-	for (int bg = COLOR_BLACK; bg < COLOR_BRIGHT; ++bg) {
-		for (int fg = COLOR_BLACK; fg < COLOR_BRIGHT; ++fg) {
-			init_pair(bg << 4 | fg, fg, bg);
-		}
-	}
+	colorPairs();
 
+	attrset(colorAttr(COLOR_WHITE));
 	mvhline(CELL_ROWS, 0, 0, CELL_COLS);
 	mvhline(CELL_ROWS * 2 + 1, 0, 0, CELL_COLS);
 	mvvline(0, CELL_COLS, 0, CELL_ROWS * 2 + 1);
 	mvaddch(CELL_ROWS, CELL_COLS, ACS_RTEE);
 	mvaddch(CELL_ROWS * 2 + 1, CELL_COLS, ACS_LRCORNER);
+	attrset(A_NORMAL);
 
 	struct Tile tileA, tileB;
 	for (;;) {

@@ -71,18 +71,31 @@ static void clientMap(void) {
 	clientMessage(msg);
 }
 
-static chtype colorAttrs(uint8_t color) {
-	uint8_t bright = color & COLOR_BRIGHT;
-	uint8_t fg = color & 0x07;
-	uint8_t bg = color & 0x70;
-	return COLOR_PAIR(bg >> 1 | fg) | (bright ? A_BOLD : 0);
+static void colorPairs(void) {
+	assume_default_colors(0, 0);
+	if (COLORS >= 16) {
+		for (short pair = 1; pair < 0x80; ++pair) {
+			init_pair(pair, pair & 0x0F, (pair & 0xF0) >> 4);
+		}
+	} else {
+		for (short pair = 1; pair < 0100; ++pair) {
+			init_pair(pair, pair & 007, (pair & 070) >> 3);
+		}
+	}
 }
 
-static uint8_t attrsColor(chtype attrs) {
-	chtype bright = attrs & A_BOLD;
-	short fg = PAIR_NUMBER(attrs) & 007;
-	short bg = PAIR_NUMBER(attrs) & 070;
-	return bg << 1 | fg | (bright ? COLOR_BRIGHT : 0);
+static chtype colorAttr(uint8_t color) {
+	if (COLORS >= 16) return COLOR_PAIR(color);
+	chtype bold = (color & COLOR_BRIGHT) ? A_BOLD : A_NORMAL;
+	short pair = (color & 0x70) >> 1 | (color & 0x07);
+	return bold | COLOR_PAIR(pair);
+}
+
+static uint8_t attrColor(chtype attr) {
+	if (COLORS >= 16) return PAIR_NUMBER(attr);
+	uint8_t bright = (attr & A_BOLD) ? COLOR_BRIGHT : 0;
+	short pair = PAIR_NUMBER(attr);
+	return (pair & 070) << 1 | bright | (pair & 007);
 }
 
 static struct {
@@ -129,13 +142,13 @@ static void insertMode(int8_t dx, int8_t dy) {
 }
 
 static void swapCell(int8_t dx, int8_t dy) {
-	uint8_t aColor = attrsColor(inch());
+	uint8_t aColor = attrColor(inch());
 	char aCell = inch() & A_CHARTEXT;
 
 	int sy, sx;
 	getyx(stdscr, sy, sx);
 	move(sy + dy, sx + dx);
-	uint8_t bColor = attrsColor(inch());
+	uint8_t bColor = attrColor(inch());
 	char bCell = inch() & A_CHARTEXT;
 	move(sy, sx);
 
@@ -164,7 +177,7 @@ static void inputNormal(int c) {
 		break; case 'r': input.mode = MODE_REPLACE;
 		break; case 'p': input.mode = MODE_PUT;
 		break; case 'R': input.mode = MODE_DRAW; input.draw = 0;
-		break; case 'x': clientPut(attrsColor(inch()), ' ');
+		break; case 'x': clientPut(attrColor(inch()), ' ');
 
 		break; case '~': {
 			clientPut(input.color, inch() & A_CHARTEXT);
@@ -192,7 +205,7 @@ static void inputNormal(int c) {
 		break; case 'B': swapCell(-1,  1);
 		break; case 'N': swapCell( 1,  1);
 
-		break; case '`': input.color = attrsColor(inch());
+		break; case '`': input.color = attrColor(inch());
 
 		break; case '0': colorFg(COLOR_BLACK);
 		break; case '1': colorFg(COLOR_RED);
@@ -260,7 +273,7 @@ static void inputInsert(int c) {
 }
 
 static void inputReplace(int c) {
-	if (isprint(c)) clientPut(attrsColor(inch()), c);
+	if (isprint(c)) clientPut(attrColor(inch()), c);
 	input.mode = MODE_NORMAL;
 }
 
@@ -294,7 +307,7 @@ static void readInput(void) {
 }
 
 static void serverPut(uint8_t x, uint8_t y, uint8_t color, char cell) {
-	mvaddch(y, x, colorAttrs(color) | cell);
+	mvaddch(y, x, colorAttr(color) | cell);
 }
 
 static void serverTile(void) {
@@ -370,15 +383,15 @@ static void serverMap(void) {
 			time *= ARRAY_LEN(MAP_COLORS) - 1;
 
 			char cell = MAP_CELLS[(int)round(count)];
-			chtype attrs = colorAttrs(MAP_COLORS[(int)round(time)]);
+			chtype attr = colorAttr(MAP_COLORS[(int)round(time)]);
 			if (y == MAP_ROWS / 2 && x == MAP_COLS / 2) {
-				attrs |= A_REVERSE;
+				attr |= A_REVERSE;
 			}
 
 			wmove(mapWindow, y, 3 * x);
-			waddch(mapWindow, attrs | cell);
-			waddch(mapWindow, attrs | cell);
-			waddch(mapWindow, attrs | cell);
+			waddch(mapWindow, attr | cell);
+			waddch(mapWindow, attr | cell);
+			waddch(mapWindow, attr | cell);
 		}
 	}
 
@@ -456,11 +469,7 @@ static void curse(void) {
 		);
 		exit(EX_CONFIG);
 	}
-	for (int bg = COLOR_BLACK; bg < COLOR_BRIGHT; ++bg) {
-		for (int fg = COLOR_BLACK; fg < COLOR_BRIGHT; ++fg) {
-			init_pair(PAIR_NUMBER(colorAttrs(bg << 4 | fg)), fg, bg);
-		}
-	}
+	colorPairs();
 
 	if (LINES < CELL_ROWS || COLS < CELL_COLS) {
 		endwin();
@@ -468,6 +477,8 @@ static void curse(void) {
 		fprintf(stderr, "It needs to be at least 80x25 characters.\n");
 		exit(EX_CONFIG);
 	}
+
+	attrset(colorAttr(COLOR_WHITE));
 	if (LINES > CELL_ROWS) {
 		mvhline(CELL_ROWS, 0, 0, CELL_COLS);
 	}
@@ -477,6 +488,7 @@ static void curse(void) {
 	if (LINES > CELL_ROWS && COLS > CELL_COLS) {
 		mvaddch(CELL_ROWS, CELL_COLS, ACS_LRCORNER);
 	}
+	attrset(A_NORMAL);
 
 	mapFrame = newwin(
 		MAP_ROWS + 2,
@@ -490,6 +502,7 @@ static void curse(void) {
 		CELL_INIT_Y - MAP_ROWS / 2,
 		CELL_INIT_X - 3 * MAP_COLS / 2
 	);
+	wattrset(mapFrame, colorAttr(COLOR_WHITE));
 	box(mapFrame, 0, 0);
 }
 
