@@ -15,14 +15,12 @@
  */
 
 #include <assert.h>
+#include <stdalign.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <time.h>
-
-#define PACKED __attribute__((packed))
-#define ALIGNED(x) __attribute__((aligned(x)))
 
 #define ARRAY_LEN(a) (sizeof(a) / sizeof((a)[0]))
 
@@ -64,8 +62,8 @@ struct Meta {
 	uint32_t accessCount;
 };
 
-struct ALIGNED(4096) Tile {
-	char cells[CELL_ROWS][CELL_COLS];
+struct Tile {
+	alignas(4096) char cells[CELL_ROWS][CELL_COLS];
 	uint8_t colors[CELL_ROWS][CELL_COLS];
 	struct Meta meta;
 };
@@ -90,7 +88,7 @@ struct Map {
 };
 
 struct ServerMessage {
-	enum PACKED {
+	enum {
 		SERVER_TILE,
 		SERVER_MOVE,
 		SERVER_PUT,
@@ -120,7 +118,7 @@ struct ServerMessage {
 static const uint8_t CURSOR_NONE = UINT8_MAX;
 
 struct ClientMessage {
-	enum PACKED {
+	enum {
 		CLIENT_MOVE,
 		CLIENT_PUT,
 		CLIENT_MAP,
