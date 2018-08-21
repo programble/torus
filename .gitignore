@@ -1,3 +1,4 @@
+*.o
 chroot.tar
 client
 help
