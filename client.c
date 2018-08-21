@@ -58,14 +58,6 @@ static void clientPut(uint8_t color, char cell) {
 	clientMessage(msg);
 }
 
-static void clientSpawn(uint8_t spawn) {
-	struct ClientMessage msg = {
-		.type = CLIENT_SPAWN,
-		.spawn = spawn,
-	};
-	clientMessage(msg);
-}
-
 static void clientMap(void) {
 	struct ClientMessage msg = { .type = CLIENT_MAP };
 	clientMessage(msg);
@@ -162,13 +154,6 @@ static void inputNormal(int c) {
 		break; case ESC: input.mode = MODE_NORMAL;
 
 		break; case 'q': endwin(); exit(EX_OK);
-		break; case 'Q': {
-			if ((input.color & 0x07) < ARRAY_LEN(SPAWNS)) {
-				clientSpawn(input.color & 0x07);
-			} else {
-				clientSpawn(0);
-			}
-		}
 		break; case 'm': clientMap();
 
 		break; case 'i': insertMode(1, 0);

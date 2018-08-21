@@ -97,8 +97,8 @@ static struct Client *clientAdd(int fd) {
 	if (!client) err(EX_OSERR, "malloc");
 
 	client->fd = fd;
-	client->tileX = TILE_VOID_X;
-	client->tileY = TILE_VOID_Y;
+	client->tileX = TILE_INIT_X;
+	client->tileY = TILE_INIT_Y;
 	client->cellX = CELL_INIT_X;
 	client->cellY = CELL_INIT_Y;
 
@@ -172,61 +172,6 @@ static bool clientCursors(const struct Client *client) {
 	return true;
 }
 
-static bool clientUpdate(const struct Client *client, const struct Client *old) {
-	struct ServerMessage msg = {
-		.type = SERVER_MOVE,
-		.move = { .cellX = client->cellX, .cellY = client->cellY },
-	};
-	if (!clientSend(client, msg)) return false;
-
-	if (client->tileX != old->tileX || client->tileY != old->tileY) {
-		msg.type = SERVER_TILE;
-		if (!clientSend(client, msg)) return false;
-
-		if (!clientCursors(client)) return false;
-
-		msg = (struct ServerMessage) {
-			.type = SERVER_CURSOR,
-			.cursor = {
-				.oldCellX = old->cellX,  .oldCellY = old->cellY,
-				.newCellX = CURSOR_NONE, .newCellY = CURSOR_NONE,
-			},
-		};
-		clientCast(old, msg);
-
-		msg = (struct ServerMessage) {
-			.type = SERVER_CURSOR,
-			.cursor = {
-				.oldCellX = CURSOR_NONE,   .oldCellY = CURSOR_NONE,
-				.newCellX = client->cellX, .newCellY = client->cellY,
-			},
-		};
-		clientCast(client, msg);
-
-	} else {
-		msg = (struct ServerMessage) {
-			.type = SERVER_CURSOR,
-			.cursor = {
-				.oldCellX = old->cellX,    .oldCellY = old->cellY,
-				.newCellX = client->cellX, .newCellY = client->cellY,
-			},
-		};
-		clientCast(client, msg);
-	}
-
-	return true;
-}
-
-static bool clientSpawn(struct Client *client, uint8_t spawn) {
-	if (spawn >= ARRAY_LEN(SPAWNS)) return false;
-	struct Client old = *client;
-	client->tileX = SPAWNS[spawn].tileX;
-	client->tileY = SPAWNS[spawn].tileY;
-	client->cellX = CELL_INIT_X;
-	client->cellY = CELL_INIT_Y;
-	return clientUpdate(client, &old);
-}
-
 static bool clientMove(struct Client *client, int8_t dx, int8_t dy) {
 	struct Client old = *client;
 
@@ -265,7 +210,48 @@ static bool clientMove(struct Client *client, int8_t dx, int8_t dy) {
 	assert(client->tileX < TILE_COLS);
 	assert(client->tileY < TILE_ROWS);
 
-	return clientUpdate(client, &old);
+	struct ServerMessage msg = {
+		.type = SERVER_MOVE,
+		.move = { .cellX = client->cellX, .cellY = client->cellY },
+	};
+	if (!clientSend(client, msg)) return false;
+
+	if (client->tileX != old.tileX || client->tileY != old.tileY) {
+		msg.type = SERVER_TILE;
+		if (!clientSend(client, msg)) return false;
+
+		if (!clientCursors(client)) return false;
+
+		msg = (struct ServerMessage) {
+			.type = SERVER_CURSOR,
+			.cursor = {
+				.oldCellX = old.cellX,  .oldCellY = old.cellY,
+				.newCellX = CURSOR_NONE, .newCellY = CURSOR_NONE,
+			},
+		};
+		clientCast(&old, msg);
+
+		msg = (struct ServerMessage) {
+			.type = SERVER_CURSOR,
+			.cursor = {
+				.oldCellX = CURSOR_NONE,   .oldCellY = CURSOR_NONE,
+				.newCellX = client->cellX, .newCellY = client->cellY,
+			},
+		};
+		clientCast(client, msg);
+
+	} else {
+		msg = (struct ServerMessage) {
+			.type = SERVER_CURSOR,
+			.cursor = {
+				.oldCellX = old.cellX,    .oldCellY = old.cellY,
+				.newCellX = client->cellX, .newCellY = client->cellY,
+			},
+		};
+		clientCast(client, msg);
+	}
+
+	return true;
 }
 
 static bool clientPut(const struct Client *client, uint8_t color, char cell) {
@@ -366,7 +352,11 @@ int main() {
 			nevents = kevent(kq, &event, 1, NULL, 0, NULL);
 			if (nevents < 0) err(EX_IOERR, "kevent");
 
-			if (!clientSpawn(client, 0)) clientRemove(client);
+			struct ServerMessage msg = { .type = SERVER_TILE };
+			bool success = clientSend(client, msg)
+				&& clientMove(client, 0, 0)
+				&& clientCursors(client);
+			if (!success) clientRemove(client);
 
 			continue;
 		}
@@ -392,8 +382,9 @@ int main() {
 			break; case CLIENT_PUT: {
 				success = clientPut(client, msg.put.color, msg.put.cell);
 			}
-			break; case CLIENT_SPAWN: success = clientSpawn(client, msg.spawn);
-			break; case CLIENT_MAP: success = clientMap(client);
+			break; case CLIENT_MAP: {
+				success = clientMap(client);
+			}
 		}
 		if (!success) clientRemove(client);
 	}

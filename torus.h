@@ -75,19 +75,8 @@ enum {
 };
 static const size_t TILES_SIZE = sizeof(struct Tile[TILE_ROWS][TILE_COLS]);
 
-static const uint32_t TILE_VOID_X = UINT32_MAX;
-static const uint32_t TILE_VOID_Y = UINT32_MAX;
-
-static const struct {
-	uint32_t tileX;
-	uint32_t tileY;
-} SPAWNS[] = {
-	{ 0, 0 },
-	{ TILE_COLS * 3 / 4, TILE_ROWS * 3 / 4 }, // NW
-	{ TILE_COLS * 1 / 4, TILE_ROWS * 3 / 4 }, // NE
-	{ TILE_COLS * 1 / 4, TILE_ROWS * 1 / 4 }, // SE
-	{ TILE_COLS * 3 / 4, TILE_ROWS * 1 / 4 }, // SW
-};
+static const uint32_t TILE_INIT_X = TILE_COLS / 2;
+static const uint32_t TILE_INIT_Y = TILE_ROWS / 2;
 
 enum {
 	MAP_ROWS = 11,
@@ -138,7 +127,6 @@ struct ClientMessage {
 	enum PACKED {
 		CLIENT_MOVE,
 		CLIENT_PUT,
-		CLIENT_SPAWN,
 		CLIENT_MAP,
 	} type;
 	union {
@@ -150,6 +138,5 @@ struct ClientMessage {
 			uint8_t color;
 			char cell;
 		} put;
-		uint8_t spawn;
 	};
 };
