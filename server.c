@@ -58,25 +58,25 @@ static void tilesMap(void) {
 
 static struct Tile *tileGet(uint32_t tileX, uint32_t tileY) {
 	struct Tile *tile = &tiles[tileY * TILE_ROWS + tileX];
-	if (!tile->createTime) {
+	if (!tile->meta.createTime) {
 		memset(tile->cells, ' ', CELLS_SIZE);
 		memset(tile->colors, COLOR_WHITE, CELLS_SIZE);
-		tile->createTime = time(NULL);
+		tile->meta.createTime = time(NULL);
 	}
 	return tile;
 }
 
 static struct Tile *tileAccess(uint32_t tileX, uint32_t tileY) {
 	struct Tile *tile = tileGet(tileX, tileY);
-	tile->accessTime = time(NULL);
-	tile->accessCount++;
+	tile->meta.accessTime = time(NULL);
+	tile->meta.accessCount++;
 	return tile;
 }
 
 static struct Tile *tileModify(uint32_t tileX, uint32_t tileY) {
 	struct Tile *tile = tileGet(tileX, tileY);
-	tile->modifyTime = time(NULL);
-	tile->modifyCount++;
+	tile->meta.modifyTime = time(NULL);
+	tile->meta.modifyCount++;
 	return tile;
 }
 
@@ -282,15 +282,7 @@ static bool clientMap(const struct Client *client) {
 		for (int32_t x = 0; x < MAP_COLS; ++x) {
 			uint32_t tileY = ((mapY + y) % TILE_ROWS + TILE_ROWS) % TILE_ROWS;
 			uint32_t tileX = ((mapX + x) % TILE_COLS + TILE_COLS) % TILE_COLS;
-
-			const struct Tile *tile = &tiles[tileY * TILE_ROWS + tileX];
-			map.tiles[y][x] = (struct MapTile) {
-				.createTime = tile->createTime,
-				.modifyTime = tile->modifyTime,
-				.accessTime = tile->accessTime,
-				.modifyCount = tile->modifyCount,
-				.accessCount = tile->accessCount,
-			};
+			map.meta[y][x] = tiles[tileY * TILE_ROWS + tileX].meta;
 		}
 	}
 

@@ -346,23 +346,23 @@ static void serverMap(void) {
 	time_t timeMin = timeNow;
 	for (int y = 0; y < MAP_ROWS; ++y) {
 		for (int x = 0; x < MAP_COLS; ++x) {
-			struct MapTile tile = map.tiles[y][x];
-			if (countMax < tile.modifyCount) countMax = tile.modifyCount;
-			if (tile.modifyTime && timeMin > tile.modifyTime) {
-				timeMin = tile.modifyTime;
+			struct Meta meta = map.meta[y][x];
+			if (countMax < meta.modifyCount) countMax = meta.modifyCount;
+			if (meta.modifyTime && timeMin > meta.modifyTime) {
+				timeMin = meta.modifyTime;
 			}
 		}
 	}
 
 	for (int y = 0; y < MAP_ROWS; ++y) {
 		for (int x = 0; x < MAP_COLS; ++x) {
-			struct MapTile tile = map.tiles[y][x];
+			struct Meta meta = map.meta[y][x];
 
-			double count = (tile.modifyCount && countMax > 1)
-				? log(tile.modifyCount) / log(countMax)
+			double count = (meta.modifyCount && countMax > 1)
+				? log(meta.modifyCount) / log(countMax)
 				: 0.0;
-			double time = (tile.modifyTime && timeNow - timeMin)
-				? (double)(tile.modifyTime - timeMin) / (double)(timeNow - timeMin)
+			double time = (meta.modifyTime && timeNow - timeMin)
+				? (double)(meta.modifyTime - timeMin) / (double)(timeNow - timeMin)
 				: 0.0;
 			count *= ARRAY_LEN(MAP_CELLS) - 2;
 			time *= ARRAY_LEN(MAP_COLORS) - 1;

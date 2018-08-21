@@ -32,11 +32,11 @@ int main() {
 			"%d,%d,%jd,%u,%jd,%u,%jd\n",
 			i % TILE_COLS,
 			i / TILE_COLS,
-			tile.createTime,
-			tile.modifyCount,
-			tile.modifyTime,
-			tile.accessCount,
-			tile.accessTime
+			tile.meta.createTime,
+			tile.meta.modifyCount,
+			tile.meta.modifyTime,
+			tile.meta.accessCount,
+			tile.meta.accessTime
 		);
 	}
 }

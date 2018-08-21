@@ -48,7 +48,7 @@ enum {
 };
 
 enum {
-	CELL_ROWS = 25,
+	CELL_ROWS = 24,
 	CELL_COLS = 80,
 };
 static const size_t CELLS_SIZE = sizeof(char[CELL_ROWS][CELL_COLS]);
@@ -56,22 +56,24 @@ static const size_t CELLS_SIZE = sizeof(char[CELL_ROWS][CELL_COLS]);
 static const uint8_t CELL_INIT_X = CELL_COLS / 2;
 static const uint8_t CELL_INIT_Y = CELL_ROWS / 2;
 
-struct ALIGNED(4096) Tile {
+struct Meta {
 	time_t createTime;
 	time_t modifyTime;
-	char ALIGNED(16) cells[CELL_ROWS][CELL_COLS];
-	uint8_t ALIGNED(16) colors[CELL_ROWS][CELL_COLS];
+	time_t accessTime;
 	uint32_t modifyCount;
 	uint32_t accessCount;
-	time_t accessTime;
+};
+
+struct ALIGNED(4096) Tile {
+	char cells[CELL_ROWS][CELL_COLS];
+	uint8_t colors[CELL_ROWS][CELL_COLS];
+	struct Meta meta;
 };
 static_assert(4096 == sizeof(struct Tile), "struct Tile is page-sized");
-static_assert(16 == offsetof(struct Tile, cells), "stable cells offset");
-static_assert(2016 == offsetof(struct Tile, colors), "stable colors offset");
 
 enum {
-	TILE_ROWS = 512,
-	TILE_COLS = 512,
+	TILE_ROWS = 64,
+	TILE_COLS = 64,
 };
 static const size_t TILES_SIZE = sizeof(struct Tile[TILE_ROWS][TILE_COLS]);
 
@@ -84,13 +86,7 @@ enum {
 };
 
 struct Map {
-	struct MapTile {
-		time_t createTime;
-		time_t modifyTime;
-		time_t accessTime;
-		uint32_t modifyCount;
-		uint32_t accessCount;
-	} tiles[MAP_ROWS][MAP_COLS];
+	struct Meta meta[MAP_ROWS][MAP_COLS];
 };
 
 struct ServerMessage {

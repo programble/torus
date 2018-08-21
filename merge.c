@@ -93,11 +93,11 @@ int main(int argc, char *argv[]) {
 		if (!countA && !countB) break;
 		if (!countA || !countB) errx(EX_DATAERR, "different size inputs");
 
-		const struct Tile *tileC = (tileA.accessTime > tileB.accessTime)
+		const struct Tile *tileC = (tileA.meta.accessTime > tileB.meta.accessTime)
 			? &tileA
 			: &tileB;
 
-		if (tileA.modifyTime != tileB.modifyTime) {
+		if (tileA.meta.modifyTime != tileB.meta.modifyTime) {
 			drawTile(0, &tileA);
 			drawTile(CELL_ROWS + 1, &tileB);
 			move(CELL_ROWS * 2 + 2, 0);
