@@ -296,6 +296,7 @@ static void inputNormal(bool keyCode, wchar_t ch) {
 
 		break; case '8': case '*': input.color ^= COLOR_BRIGHT;
 		break; case '9': case '(': inputInvert();
+		break; case '`': input.color = tile.colors[cellY][cellX];
 
 		break; case 'H': inputSwap(-1,  0);
 		break; case 'L': inputSwap( 1,  0);
@@ -305,6 +306,12 @@ static void inputNormal(bool keyCode, wchar_t ch) {
 		break; case 'U': inputSwap( 1, -1);
 		break; case 'B': inputSwap(-1,  1);
 		break; case 'N': inputSwap( 1,  1);
+
+		break; case 'x': clientPut(tile.colors[cellY][cellX], ' ');
+		break; case '~': {
+			clientPut(input.color, tile.cells[cellY][cellX]);
+			clientMove(1, 0);
+		}
 
 		break; case CTRL('P'): input.shift -= 0x20;
 		break; case CTRL('N'): input.shift += 0x20;
