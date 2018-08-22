@@ -98,6 +98,8 @@ static short colorPair(uint8_t color) {
 	return (color & 0x70) >> 1 | (color & 0x07);
 }
 
+static uint8_t cellX;
+static uint8_t cellY;
 static struct Tile tile;
 
 static void tileDraw(uint8_t cellX, uint8_t cellY, attr_t attr) {
@@ -124,10 +126,15 @@ static void serverTile(void) {
 	}
 }
 
+static void serverMove(struct ServerMessage msg) {
+	cellX = msg.move.cellX;
+	cellY = msg.move.cellY;
+}
+
 static void serverPut(struct ServerMessage msg) {
 	tile.colors[msg.put.cellY][msg.put.cellX] = msg.put.color;
 	tile.cells[msg.put.cellY][msg.put.cellX] = msg.put.cell;
-	tileDraw(msg.put.cellY, msg.put.cellX, A_NORMAL);
+	tileDraw(msg.put.cellX, msg.put.cellY, A_NORMAL);
 }
 
 static void serverCursor(struct ServerMessage msg) {
@@ -148,17 +155,15 @@ static void readMessage(void) {
 	if (size < 0) err(EX_IOERR, "recv");
 	if ((size_t)size < sizeof(msg)) errx(EX_PROTOCOL, "truncated message");
 
-	int y, x;
-	getyx(stdscr, y, x);
 	switch (msg.type) {
 		break; case SERVER_TILE:   serverTile();
-		break; case SERVER_MOVE:   y = msg.move.cellY; x = msg.move.cellX;
+		break; case SERVER_MOVE:   serverMove(msg);
 		break; case SERVER_PUT:    serverPut(msg);
 		break; case SERVER_CURSOR: serverCursor(msg);
 		break; case SERVER_MAP:    serverMap();
 		break; default: errx(EX_PROTOCOL, "unknown message type %d", msg.type);
 	}
-	move(y, x);
+	move(cellY, cellX);
 }
 
 static void clientMessage(struct ClientMessage msg) {
@@ -194,7 +199,9 @@ static struct {
 	} mode;
 	uint8_t color;
 	uint8_t shift;
-} input;
+} input = {
+	.color = COLOR_WHITE,
+};
 
 static struct {
 	int8_t dx;
@@ -219,6 +226,21 @@ static void inputInvert(void) {
 	input.color = (input.color & 0x08)
 		| (input.color & 0x70) >> 4
 		| (input.color & 0x07) << 4;
+}
+
+static void inputSwap(int8_t dx, int8_t dy) {
+	if ((uint8_t)(cellX + dx) >= CELL_COLS) return;
+	if ((uint8_t)(cellY + dy) >= CELL_ROWS) return;
+
+	uint8_t aColor = tile.colors[cellY][cellX];
+	uint8_t aCell = tile.cells[cellY][cellX];
+
+	uint8_t bColor = tile.colors[cellY + dy][cellX + dx];
+	uint8_t bCell = tile.cells[cellY + dy][cellX + dx];
+
+	clientPut(bColor, bCell);
+	clientMove(dx, dy);
+	clientPut(aColor, aCell);
 }
 
 static uint8_t inputCell(wchar_t ch) {
@@ -273,6 +295,15 @@ static void inputNormal(bool keyCode, wchar_t ch) {
 
 		break; case '8': case '*': input.color ^= COLOR_BRIGHT;
 		break; case '9': case '(': inputInvert();
+
+		break; case 'H': inputSwap(-1,  0);
+		break; case 'L': inputSwap( 1,  0);
+		break; case 'K': inputSwap( 0, -1);
+		break; case 'J': inputSwap( 0,  1);
+		break; case 'Y': inputSwap(-1, -1);
+		break; case 'U': inputSwap( 1, -1);
+		break; case 'B': inputSwap(-1,  1);
+		break; case 'N': inputSwap( 1,  1);
 
 		break; case CTRL('P'): input.shift -= 0x20;
 		break; case CTRL('N'): input.shift += 0x20;
