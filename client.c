@@ -82,6 +82,7 @@ static void curse(void) {
 	if (hline) mvhline(CELL_ROWS, 0, 0, CELL_COLS);
 	if (vline) mvvline(0, CELL_COLS, 0, CELL_ROWS);
 	if (hline && vline) mvaddch(CELL_ROWS, CELL_COLS, ACS_LRCORNER);
+	color_set(0, NULL);
 
 	cbreak();
 	noecho();
