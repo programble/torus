@@ -98,33 +98,45 @@ static short colorPair(uint8_t color) {
 	return (color & 0x70) >> 1 | (color & 0x07);
 }
 
-static void put(uint8_t cellX, uint8_t cellY, uint8_t color, uint8_t cell) {
+static struct Tile tile;
+
+static void tileDraw(uint8_t cellX, uint8_t cellY, attr_t attr) {
+	uint8_t color = tile.colors[cellY][cellX];
+	uint8_t cell = tile.cells[cellY][cellX];
+
 	cchar_t cch;
 	wchar_t wch[] = { CP437[cell], L'\0' };
-	setcchar(&cch, wch, colorAttr(color), colorPair(color), NULL);
+	setcchar(&cch, wch, attr | colorAttr(color), colorPair(color), NULL);
 	mvadd_wch(cellY, cellX, &cch);
 }
 
 static int client;
 
 static void serverTile(void) {
-	struct Tile tile;
 	ssize_t size = recv(client, &tile, sizeof(tile), 0);
 	if (size < 0) err(EX_IOERR, "recv");
 	if ((size_t)size < sizeof(tile)) errx(EX_PROTOCOL, "truncated tile");
 
 	for (uint8_t cellY = 0; cellY < CELL_ROWS; ++cellY) {
 		for (uint8_t cellX = 0; cellX < CELL_COLS; ++cellX) {
-			put(cellX, cellY, tile.colors[cellY][cellX], tile.cells[cellY][cellX]);
+			tileDraw(cellX, cellY, A_NORMAL);
 		}
 	}
 }
 
 static void serverPut(struct ServerMessage msg) {
-	put(msg.put.cellX, msg.put.cellY, msg.put.color, msg.put.cell);
+	tile.colors[msg.put.cellY][msg.put.cellX] = msg.put.color;
+	tile.cells[msg.put.cellY][msg.put.cellX] = msg.put.cell;
+	tileDraw(msg.put.cellY, msg.put.cellX, A_NORMAL);
 }
 
 static void serverCursor(struct ServerMessage msg) {
+	if (msg.cursor.oldCellX != CURSOR_NONE) {
+		tileDraw(msg.cursor.oldCellX, msg.cursor.oldCellY, A_NORMAL);
+	}
+	if (msg.cursor.newCellX != CURSOR_NONE) {
+		tileDraw(msg.cursor.newCellX, msg.cursor.newCellY, A_REVERSE);
+	}
 }
 
 static void serverMap(void) {
