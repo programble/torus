@@ -259,12 +259,18 @@ static void inputNormal(bool keyCode, wchar_t ch) {
 			break; case KEY_RIGHT: clientMove( 1,  0);
 			break; case KEY_UP:    clientMove( 0, -1);
 			break; case KEY_DOWN:  clientMove( 0,  1);
+
+			break; case KEY_F(1): input.shift = 0x00;
+			break; case KEY_F(2): input.shift = 0xC0;
+			break; case KEY_F(3): input.shift = 0xA0;
+			break; case KEY_F(4): input.shift = 0x70;
+			break; case KEY_F(5): input.shift = 0x40;
 		}
 		return;
 	}
 
 	switch (ch) {
-		break; case ESC: input.mode = MODE_NORMAL;
+		break; case ESC: input.mode = MODE_NORMAL; input.shift = 0;
 		break; case 'q': endwin(); exit(EX_OK);
 
 		break; case 'h': clientMove(-1,  0);
@@ -319,9 +325,6 @@ static void inputNormal(bool keyCode, wchar_t ch) {
 		break; case CTRL('X'): {
 			clientPut(tile.colors[cellY][cellX], tile.cells[cellY][cellX] - 1);
 		}
-
-		break; case CTRL('P'): input.shift -= 0x20;
-		break; case CTRL('N'): input.shift += 0x20;
 
 		break; case 'i': insertMode(1, 0);
 		break; case 'a': clientMove(1, 0); insertMode(1, 0);
