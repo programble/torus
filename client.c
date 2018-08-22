@@ -313,6 +313,13 @@ static void inputNormal(bool keyCode, wchar_t ch) {
 			clientMove(1, 0);
 		}
 
+		break; case CTRL('A'): {
+			clientPut(tile.colors[cellY][cellX], tile.cells[cellY][cellX] + 1);
+		}
+		break; case CTRL('X'): {
+			clientPut(tile.colors[cellY][cellX], tile.cells[cellY][cellX] - 1);
+		}
+
 		break; case CTRL('P'): input.shift -= 0x20;
 		break; case CTRL('N'): input.shift += 0x20;
 
