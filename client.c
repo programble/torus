@@ -197,9 +197,11 @@ static struct {
 		MODE_NORMAL,
 		MODE_INSERT,
 		MODE_REPLACE,
+		MODE_DRAW,
 	} mode;
 	uint8_t color;
 	uint8_t shift;
+	uint8_t draw;
 } input = {
 	.color = COLOR_WHITE,
 };
@@ -245,7 +247,7 @@ static void inputSwap(int8_t dx, int8_t dy) {
 }
 
 static uint8_t inputCell(wchar_t ch) {
-	if (ch < 0x7F) return (uint8_t)ch + input.shift;
+	if (ch < 0x80) return (uint8_t)ch + input.shift;
 	for (size_t i = 0; i < ARRAY_LEN(CP437); ++i) {
 		if (ch == CP437[i]) return i;
 	}
@@ -328,6 +330,7 @@ static void inputNormal(wchar_t ch) {
 		break; case 'i': insertMode(1, 0);
 		break; case 'a': clientMove(1, 0); insertMode(1, 0);
 		break; case 'r': input.mode = MODE_REPLACE;
+		break; case 'R': input.mode = MODE_DRAW; input.draw = 0;
 	}
 }
 
@@ -358,9 +361,25 @@ static void inputInsert(wchar_t ch) {
 }
 
 static void inputReplace(wchar_t ch) {
-	uint8_t cell = inputCell(ch);
-	if (ch != ESC && cell) clientPut(tile.colors[cellY][cellX], cell);
+	if (ch != ESC) {
+		uint8_t cell = inputCell(ch);
+		if (!cell) return;
+		clientPut(tile.colors[cellY][cellX], cell);
+	}
 	input.mode = MODE_NORMAL;
+}
+
+static void inputDraw(wchar_t ch) {
+	if (ch == ESC) {
+		input.mode = MODE_NORMAL;
+		return;
+	}
+	if (input.draw) {
+		inputNormal(ch);
+	} else {
+		input.draw = inputCell(ch);
+	}
+	clientPut(input.color, input.draw);
 }
 
 static void readInput(void) {
@@ -373,6 +392,7 @@ static void readInput(void) {
 		break; case MODE_NORMAL:  inputNormal(ch);
 		break; case MODE_INSERT:  inputInsert(ch);
 		break; case MODE_REPLACE: inputReplace(ch);
+		break; case MODE_DRAW:    inputDraw(ch);
 	}
 }
 
