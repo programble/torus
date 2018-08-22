@@ -2,7 +2,7 @@ CHROOT_USER = torus
 CHROOT_GROUP = $(CHROOT_USER)
 
 CFLAGS += -Wall -Wextra -Wpedantic
-LDLIBS = -lm -lcurses
+LDLIBS = -lm -lcursesw
 BINS = server client help meta merge
 OBJS = $(BINS:%=%.o)
 
@@ -32,6 +32,7 @@ chroot.tar: server client help
 	    /lib/libncurses.so.8 \
 	    /lib/libncursesw.so.8 \
 	    root/lib
+	cp -a -f /usr/share/locale root/usr/share
 	cp -p -f /usr/share/misc/termcap.db root/usr/share/misc
 	cp -p -f /bin/sh root/bin
 	install -o root -g wheel -m 555 server client help root/bin

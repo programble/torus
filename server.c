@@ -254,7 +254,7 @@ static bool clientMove(struct Client *client, int8_t dx, int8_t dy) {
 	return true;
 }
 
-static bool clientPut(const struct Client *client, uint8_t color, char cell) {
+static bool clientPut(const struct Client *client, uint8_t color, uint8_t cell) {
 	struct Tile *tile = tileModify(client->tileX, client->tileY);
 	tile->colors[client->cellY][client->cellX] = color;
 	tile->cells[client->cellY][client->cellX] = cell;

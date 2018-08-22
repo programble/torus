@@ -21,6 +21,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <time.h>
+#include <wchar.h>
 
 #define ARRAY_LEN(a) (sizeof(a) / sizeof((a)[0]))
 
@@ -45,11 +46,30 @@ enum {
 	COLOR_BRIGHT,
 };
 
+static const wchar_t CP437[256] = (
+	L" ☺☻♥♦♣♠•◘○◙♂♀♪♫☼"
+	L"►◄↕‼¶§▬↨↑↓→←∟↔▲▼"
+	L" !\"#$%&'()*+,-./"
+	L"0123456789:;<=>?"
+	L"@ABCDEFGHIJKLMNO"
+	L"PQRSTUVWXYZ[\\]^_"
+	L"`abcdefghijklmno"
+	L"pqrstuvwxyz{|}~⌂"
+	L"ÇüéâäàåçêëèïîìÄÅ"
+	L"ÉæÆôöòûùÿÖÜ¢£¥₧ƒ"
+	L"áíóúñÑªº¿⌐¬½¼¡«»"
+	L"░▒▓│┤╡╢╖╕╣║╗╝╜╛┐"
+	L"└┴┬├─┼╞╟╚╔╩╦╠═╬╧"
+	L"╨╤╥╙╘╒╓╫╪┘┌█▄▌▐▀"
+	L"αßΓπΣσµτΦΘΩδ∞φε∩"
+	L"≡±≥≤⌠⌡÷≈°∙·√ⁿ²■ "
+);
+
 enum {
 	CELL_ROWS = 24,
 	CELL_COLS = 80,
 };
-static const size_t CELLS_SIZE = sizeof(char[CELL_ROWS][CELL_COLS]);
+static const size_t CELLS_SIZE = sizeof(uint8_t[CELL_ROWS][CELL_COLS]);
 
 static const uint8_t CELL_INIT_X = CELL_COLS / 2;
 static const uint8_t CELL_INIT_Y = CELL_ROWS / 2;
@@ -63,7 +83,7 @@ struct Meta {
 };
 
 struct Tile {
-	alignas(4096) char cells[CELL_ROWS][CELL_COLS];
+	alignas(4096) uint8_t cells[CELL_ROWS][CELL_COLS];
 	uint8_t colors[CELL_ROWS][CELL_COLS];
 	struct Meta meta;
 };
@@ -104,7 +124,7 @@ struct ServerMessage {
 			uint8_t cellX;
 			uint8_t cellY;
 			uint8_t color;
-			char cell;
+			uint8_t cell;
 		} put;
 		struct {
 			uint8_t oldCellX;
@@ -130,7 +150,7 @@ struct ClientMessage {
 		} move;
 		struct {
 			uint8_t color;
-			char cell;
+			uint8_t cell;
 		} put;
 	};
 };
