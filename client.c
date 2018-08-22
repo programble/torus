@@ -30,7 +30,6 @@
 #include <sysexits.h>
 #include <unistd.h>
 #include <wchar.h>
-#include <wctype.h>
 
 #include "torus.h"
 
@@ -197,6 +196,7 @@ static struct {
 	enum {
 		MODE_NORMAL,
 		MODE_INSERT,
+		MODE_REPLACE,
 	} mode;
 	uint8_t color;
 	uint8_t shift;
@@ -252,23 +252,22 @@ static uint8_t inputCell(wchar_t ch) {
 	return 0;
 }
 
-static void inputNormal(bool keyCode, wchar_t ch) {
-	if (keyCode) {
-		switch (ch) {
-			break; case KEY_LEFT:  clientMove(-1,  0);
-			break; case KEY_RIGHT: clientMove( 1,  0);
-			break; case KEY_UP:    clientMove( 0, -1);
-			break; case KEY_DOWN:  clientMove( 0,  1);
+static void inputKeyCode(wchar_t ch) {
+	switch (ch) {
+		break; case KEY_LEFT:  clientMove(-1,  0);
+		break; case KEY_RIGHT: clientMove( 1,  0);
+		break; case KEY_UP:    clientMove( 0, -1);
+		break; case KEY_DOWN:  clientMove( 0,  1);
 
-			break; case KEY_F(1): input.shift = 0x00;
-			break; case KEY_F(2): input.shift = 0xC0;
-			break; case KEY_F(3): input.shift = 0xA0;
-			break; case KEY_F(4): input.shift = 0x70;
-			break; case KEY_F(5): input.shift = 0x40;
-		}
-		return;
+		break; case KEY_F(1): input.shift = 0x00;
+		break; case KEY_F(2): input.shift = 0xC0;
+		break; case KEY_F(3): input.shift = 0xA0;
+		break; case KEY_F(4): input.shift = 0x70;
+		break; case KEY_F(5): input.shift = 0x40;
 	}
+}
 
+static void inputNormal(wchar_t ch) {
 	switch (ch) {
 		break; case ESC: input.mode = MODE_NORMAL; input.shift = 0;
 		break; case 'q': endwin(); exit(EX_OK);
@@ -328,14 +327,11 @@ static void inputNormal(bool keyCode, wchar_t ch) {
 
 		break; case 'i': insertMode(1, 0);
 		break; case 'a': clientMove(1, 0); insertMode(1, 0);
+		break; case 'r': input.mode = MODE_REPLACE;
 	}
 }
 
-static void inputInsert(bool keyCode, wchar_t ch) {
-	if (keyCode) {
-		inputNormal(keyCode, ch);
-		return;
-	}
+static void inputInsert(wchar_t ch) {
 	switch (ch) {
 		break; case ESC: {
 			input.mode = MODE_NORMAL;
@@ -352,11 +348,6 @@ static void inputInsert(bool keyCode, wchar_t ch) {
 			insert.len = 0;
 		}
 		break; default: {
-			if (iswcntrl(ch)) {
-				inputNormal(false, ch);
-				break;
-			}
-
 			uint8_t cell = inputCell(ch);
 			if (!cell) break;
 			clientPut(input.color, cell);
@@ -366,12 +357,22 @@ static void inputInsert(bool keyCode, wchar_t ch) {
 	}
 }
 
+static void inputReplace(wchar_t ch) {
+	uint8_t cell = inputCell(ch);
+	if (ch != ESC && cell) clientPut(tile.colors[cellY][cellX], cell);
+	input.mode = MODE_NORMAL;
+}
+
 static void readInput(void) {
 	wint_t ch;
-	bool keyCode = (KEY_CODE_YES == get_wch(&ch));
+	if (KEY_CODE_YES == get_wch(&ch)) {
+		inputKeyCode(ch);
+		return;
+	}
 	switch (input.mode) {
-		break; case MODE_NORMAL: inputNormal(keyCode, ch);
-		break; case MODE_INSERT: inputInsert(keyCode, ch);
+		break; case MODE_NORMAL:  inputNormal(ch);
+		break; case MODE_INSERT:  inputInsert(ch);
+		break; case MODE_REPLACE: inputReplace(ch);
 	}
 }
 
