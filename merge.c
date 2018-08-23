@@ -14,15 +14,24 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#define _XOPEN_SOURCE_EXTENDED
+
 #include <curses.h>
 #include <err.h>
 #include <fcntl.h>
+#include <locale.h>
 #include <stdio.h>
 #include <sysexits.h>
+#include <wchar.h>
 
 #include "torus.h"
 
-static void colorPairs(void) {
+static void curse(void) {
+	setlocale(LC_CTYPE, "");
+
+	initscr();
+	start_color();
+
 	assume_default_colors(0, 0);
 	if (COLORS >= 16) {
 		for (short pair = 1; pair < 0x80; ++pair) {
@@ -33,22 +42,40 @@ static void colorPairs(void) {
 			init_pair(pair, pair & 007, (pair & 070) >> 3);
 		}
 	}
+
+	color_set(COLOR_WHITE, NULL);
+	mvhline(CELL_ROWS, 0, 0, CELL_COLS);
+	mvhline(CELL_ROWS * 2 + 1, 0, 0, CELL_COLS);
+	mvvline(0, CELL_COLS, 0, CELL_ROWS * 2 + 1);
+	mvaddch(CELL_ROWS, CELL_COLS, ACS_RTEE);
+	mvaddch(CELL_ROWS * 2 + 1, CELL_COLS, ACS_LRCORNER);
+	color_set(0, NULL);
+
+	cbreak();
+	noecho();
+	keypad(stdscr, true);
+	set_escdelay(100);
 }
 
-static chtype colorAttr(uint8_t color) {
-	if (COLORS >= 16) return COLOR_PAIR(color);
-	chtype bold = (color & COLOR_BRIGHT) ? A_BOLD : A_NORMAL;
-	short pair = (color & 0x70) >> 1 | (color & 0x07);
-	return bold | COLOR_PAIR(pair);
+static attr_t colorAttr(uint8_t color) {
+	if (COLORS >= 16) return A_NORMAL;
+	return (color & COLOR_BRIGHT) ? A_BOLD : A_NORMAL;
+}
+static short colorPair(uint8_t color) {
+	if (COLORS >= 16) return color;
+	return (color & 0x70) >> 1 | (color & 0x07);
 }
 
 static void drawTile(int offsetY, const struct Tile *tile) {
-	for (uint8_t y = 0; y < CELL_ROWS; ++y) {
-		for (uint8_t x = 0; x < CELL_COLS; ++x) {
-			uint8_t color = tile->colors[y][x];
-			char cell = tile->cells[y][x];
+	for (uint8_t cellY = 0; cellY < CELL_ROWS; ++cellY) {
+		for (uint8_t cellX = 0; cellX < CELL_COLS; ++cellX) {
+			uint8_t color = tile->colors[cellY][cellX];
+			uint8_t cell = tile->cells[cellY][cellX];
 
-			mvaddch(offsetY + y, x, colorAttr(color) | cell);
+			cchar_t cch;
+			wchar_t wch[] = { CP437[cell], L'\0' };
+			setcchar(&cch, wch, colorAttr(color), colorPair(color), NULL);
+			mvadd_wch(offsetY + cellY, cellX, &cch);
 		}
 	}
 }
@@ -65,22 +92,7 @@ int main(int argc, char *argv[]) {
 	FILE *fileC = fopen(argv[3], "w");
 	if (!fileC) err(EX_CANTCREAT, "%s", argv[3]);
 
-	initscr();
-	cbreak();
-	noecho();
-	keypad(stdscr, true);
-	set_escdelay(100);
-
-	start_color();
-	colorPairs();
-
-	attrset(colorAttr(COLOR_WHITE));
-	mvhline(CELL_ROWS, 0, 0, CELL_COLS);
-	mvhline(CELL_ROWS * 2 + 1, 0, 0, CELL_COLS);
-	mvvline(0, CELL_COLS, 0, CELL_ROWS * 2 + 1);
-	mvaddch(CELL_ROWS, CELL_COLS, ACS_RTEE);
-	mvaddch(CELL_ROWS * 2 + 1, CELL_COLS, ACS_LRCORNER);
-	attrset(A_NORMAL);
+	curse();
 
 	struct Tile tileA, tileB;
 	for (;;) {
