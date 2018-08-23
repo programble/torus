@@ -140,6 +140,7 @@ static const uint8_t CURSOR_NONE = UINT8_MAX;
 struct ClientMessage {
 	enum {
 		CLIENT_MOVE,
+		CLIENT_FLIP,
 		CLIENT_PUT,
 		CLIENT_MAP,
 	} type;

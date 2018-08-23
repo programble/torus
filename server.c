@@ -172,6 +172,51 @@ static bool clientCursors(const struct Client *client) {
 	return true;
 }
 
+static bool clientUpdate(struct Client *client, const struct Client *old) {
+	struct ServerMessage msg = {
+		.type = SERVER_MOVE,
+		.move = { .cellX = client->cellX, .cellY = client->cellY },
+	};
+	if (!clientSend(client, msg)) return false;
+
+	if (client->tileX != old->tileX || client->tileY != old->tileY) {
+		msg.type = SERVER_TILE;
+		if (!clientSend(client, msg)) return false;
+
+		if (!clientCursors(client)) return false;
+
+		msg = (struct ServerMessage) {
+			.type = SERVER_CURSOR,
+			.cursor = {
+				.oldCellX = old->cellX,  .oldCellY = old->cellY,
+				.newCellX = CURSOR_NONE, .newCellY = CURSOR_NONE,
+			},
+		};
+		clientCast(old, msg);
+
+		msg = (struct ServerMessage) {
+			.type = SERVER_CURSOR,
+			.cursor = {
+				.oldCellX = CURSOR_NONE,   .oldCellY = CURSOR_NONE,
+				.newCellX = client->cellX, .newCellY = client->cellY,
+			},
+		};
+		clientCast(client, msg);
+
+	} else {
+		msg = (struct ServerMessage) {
+			.type = SERVER_CURSOR,
+			.cursor = {
+				.oldCellX = old->cellX,    .oldCellY = old->cellY,
+				.newCellX = client->cellX, .newCellY = client->cellY,
+			},
+		};
+		clientCast(client, msg);
+	}
+
+	return true;
+}
+
 static bool clientMove(struct Client *client, int8_t dx, int8_t dy) {
 	struct Client old = *client;
 
@@ -210,48 +255,14 @@ static bool clientMove(struct Client *client, int8_t dx, int8_t dy) {
 	assert(client->tileX < TILE_COLS);
 	assert(client->tileY < TILE_ROWS);
 
-	struct ServerMessage msg = {
-		.type = SERVER_MOVE,
-		.move = { .cellX = client->cellX, .cellY = client->cellY },
-	};
-	if (!clientSend(client, msg)) return false;
+	return clientUpdate(client, &old);
+}
 
-	if (client->tileX != old.tileX || client->tileY != old.tileY) {
-		msg.type = SERVER_TILE;
-		if (!clientSend(client, msg)) return false;
-
-		if (!clientCursors(client)) return false;
-
-		msg = (struct ServerMessage) {
-			.type = SERVER_CURSOR,
-			.cursor = {
-				.oldCellX = old.cellX,  .oldCellY = old.cellY,
-				.newCellX = CURSOR_NONE, .newCellY = CURSOR_NONE,
-			},
-		};
-		clientCast(&old, msg);
-
-		msg = (struct ServerMessage) {
-			.type = SERVER_CURSOR,
-			.cursor = {
-				.oldCellX = CURSOR_NONE,   .oldCellY = CURSOR_NONE,
-				.newCellX = client->cellX, .newCellY = client->cellY,
-			},
-		};
-		clientCast(client, msg);
-
-	} else {
-		msg = (struct ServerMessage) {
-			.type = SERVER_CURSOR,
-			.cursor = {
-				.oldCellX = old.cellX,    .oldCellY = old.cellY,
-				.newCellX = client->cellX, .newCellY = client->cellY,
-			},
-		};
-		clientCast(client, msg);
-	}
-
-	return true;
+static bool clientFlip(struct Client *client) {
+	struct Client old = *client;
+	client->tileX = (client->tileX + TILE_COLS / 2) % TILE_COLS;
+	client->tileY = (client->tileY + TILE_ROWS / 2) % TILE_ROWS;
+	return clientUpdate(client, &old);
 }
 
 static bool clientPut(const struct Client *client, uint8_t color, uint8_t cell) {
@@ -370,6 +381,9 @@ int main() {
 		switch (msg.type) {
 			break; case CLIENT_MOVE: {
 				success = clientMove(client, msg.move.dx, msg.move.dy);
+			}
+			break; case CLIENT_FLIP: {
+				success = clientFlip(client);
 			}
 			break; case CLIENT_PUT: {
 				success = clientPut(client, msg.put.color, msg.put.cell);
