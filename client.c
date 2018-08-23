@@ -271,6 +271,8 @@ static void inputKeyCode(wchar_t ch) {
 
 static void inputNormal(wchar_t ch) {
 	switch (ch) {
+		break; case CTRL('L'): clearok(curscr, true);
+
 		break; case ESC: input.mode = MODE_NORMAL; input.shift = 0;
 		break; case 'q': endwin(); exit(EX_OK);
 
