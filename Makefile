@@ -3,7 +3,7 @@ CHROOT_GROUP = $(CHROOT_USER)
 
 CFLAGS += -Wall -Wextra -Wpedantic
 LDLIBS = -lm -lcursesw
-BINS = server client help meta merge
+BINS = server client meta merge
 OBJS = $(BINS:%=%.o)
 
 all: tags $(BINS)
@@ -13,7 +13,7 @@ $(OBJS): torus.h
 tags: *.h *.c
 	ctags -w *.h *.c
 
-chroot.tar: server client help
+chroot.tar: server client
 	mkdir -p root
 	install -d -o root -g wheel \
 	    root/bin \
@@ -35,7 +35,7 @@ chroot.tar: server client help
 	cp -a -f /usr/share/locale root/usr/share
 	cp -p -f /usr/share/misc/termcap.db root/usr/share/misc
 	cp -p -f /bin/sh root/bin
-	install -o root -g wheel -m 555 server client help root/bin
+	install -o root -g wheel -m 555 server client root/bin
 	tar -c -f chroot.tar -C root bin home lib libexec usr
 
 clean:
