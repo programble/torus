@@ -195,6 +195,7 @@ static void clientMap(void) {
 static struct {
 	enum {
 		MODE_NORMAL,
+		MODE_DIRECTION,
 		MODE_INSERT,
 		MODE_REPLACE,
 		MODE_DRAW,
@@ -331,8 +332,23 @@ static void inputNormal(wchar_t ch) {
 
 		break; case 'i': insertMode(1, 0);
 		break; case 'a': clientMove(1, 0); insertMode(1, 0);
+		break; case 'I': input.mode = MODE_DIRECTION;
 		break; case 'r': input.mode = MODE_REPLACE;
 		break; case 'R': input.mode = MODE_DRAW; input.draw = 0;
+	}
+}
+
+static void inputDirection(wchar_t ch) {
+	switch (ch) {
+		break; case ESC: input.mode = MODE_NORMAL;
+		break; case 'h': insertMode(-1,  0);
+		break; case 'l': insertMode( 1,  0);
+		break; case 'k': insertMode( 0, -1);
+		break; case 'j': insertMode( 0,  1);
+		break; case 'y': insertMode(-1, -1);
+		break; case 'u': insertMode( 1, -1);
+		break; case 'b': insertMode(-1,  1);
+		break; case 'n': insertMode( 1,  1);
 	}
 }
 
@@ -391,10 +407,11 @@ static void readInput(void) {
 		return;
 	}
 	switch (input.mode) {
-		break; case MODE_NORMAL:  inputNormal(ch);
-		break; case MODE_INSERT:  inputInsert(ch);
-		break; case MODE_REPLACE: inputReplace(ch);
-		break; case MODE_DRAW:    inputDraw(ch);
+		break; case MODE_NORMAL:    inputNormal(ch);
+		break; case MODE_DIRECTION: inputDirection(ch);
+		break; case MODE_INSERT:    inputInsert(ch);
+		break; case MODE_REPLACE:   inputReplace(ch);
+		break; case MODE_DRAW:      inputDraw(ch);
 	}
 }
 
