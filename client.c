@@ -32,6 +32,7 @@
 #include <wchar.h>
 
 #include "torus.h"
+#include "help.h"
 
 #define err(...) do { endwin(); err(__VA_ARGS__); } while(0)
 #define errx(...) do { endwin(); errx(__VA_ARGS__); } while (0)
@@ -98,13 +99,11 @@ static short colorPair(uint8_t color) {
 	return (color & 0x70) >> 1 | (color & 0x07);
 }
 
-static uint8_t cellX;
-static uint8_t cellY;
-static struct Tile tile;
-
-static void tileDraw(uint8_t cellX, uint8_t cellY, attr_t attr) {
-	uint8_t color = tile.colors[cellY][cellX];
-	uint8_t cell = tile.cells[cellY][cellX];
+static void drawCell(
+	const struct Tile *tile, uint8_t cellX, uint8_t cellY, attr_t attr
+) {
+	uint8_t color = tile->colors[cellY][cellX];
+	uint8_t cell = tile->cells[cellY][cellX];
 
 	cchar_t cch;
 	wchar_t wch[] = { CP437[cell], L'\0' };
@@ -112,18 +111,25 @@ static void tileDraw(uint8_t cellX, uint8_t cellY, attr_t attr) {
 	mvadd_wch(cellY, cellX, &cch);
 }
 
+static void drawTile(const struct Tile *tile) {
+	for (uint8_t cellY = 0; cellY < CELL_ROWS; ++cellY) {
+		for (uint8_t cellX = 0; cellX < CELL_COLS; ++cellX) {
+			drawCell(tile, cellX, cellY, A_NORMAL);
+		}
+	}
+}
+
 static int client;
+
+static uint8_t cellX;
+static uint8_t cellY;
+static struct Tile tile;
 
 static void serverTile(void) {
 	ssize_t size = recv(client, &tile, sizeof(tile), 0);
 	if (size < 0) err(EX_IOERR, "recv");
 	if ((size_t)size < sizeof(tile)) errx(EX_PROTOCOL, "truncated tile");
-
-	for (uint8_t cellY = 0; cellY < CELL_ROWS; ++cellY) {
-		for (uint8_t cellX = 0; cellX < CELL_COLS; ++cellX) {
-			tileDraw(cellX, cellY, A_NORMAL);
-		}
-	}
+	drawTile(&tile);
 }
 
 static void serverMove(struct ServerMessage msg) {
@@ -134,15 +140,15 @@ static void serverMove(struct ServerMessage msg) {
 static void serverPut(struct ServerMessage msg) {
 	tile.colors[msg.put.cellY][msg.put.cellX] = msg.put.color;
 	tile.cells[msg.put.cellY][msg.put.cellX] = msg.put.cell;
-	tileDraw(msg.put.cellX, msg.put.cellY, A_NORMAL);
+	drawCell(&tile, msg.put.cellX, msg.put.cellY, A_NORMAL);
 }
 
 static void serverCursor(struct ServerMessage msg) {
 	if (msg.cursor.oldCellX != CURSOR_NONE) {
-		tileDraw(msg.cursor.oldCellX, msg.cursor.oldCellY, A_NORMAL);
+		drawCell(&tile, msg.cursor.oldCellX, msg.cursor.oldCellY, A_NORMAL);
 	}
 	if (msg.cursor.newCellX != CURSOR_NONE) {
-		tileDraw(msg.cursor.newCellX, msg.cursor.newCellY, A_REVERSE);
+		drawCell(&tile, msg.cursor.newCellX, msg.cursor.newCellY, A_REVERSE);
 	}
 }
 
@@ -200,6 +206,7 @@ static void clientMap(void) {
 static struct {
 	enum {
 		MODE_NORMAL,
+		MODE_HELP,
 		MODE_DIRECTION,
 		MODE_INSERT,
 		MODE_REPLACE,
@@ -218,7 +225,27 @@ static struct {
 	uint8_t len;
 } insert;
 
-static void insertMode(int8_t dx, int8_t dy) {
+static void modeHelp(void) {
+	input.mode = MODE_HELP;
+	drawTile(HELP);
+	curs_set(0);
+}
+static void modeNormal(void) {
+	input.mode = MODE_NORMAL;
+	move(cellY, cellX);
+	curs_set(1);
+}
+static void modeDraw(void) {
+	input.mode = MODE_DRAW;
+	input.draw = 0;
+}
+static void modeReplace(void) {
+	input.mode = MODE_REPLACE;
+}
+static void modeDirection(void) {
+	input.mode = MODE_DIRECTION;
+}
+static void modeInsert(int8_t dx, int8_t dy) {
 	input.mode = MODE_INSERT;
 	insert.dx = dx;
 	insert.dy = dy;
@@ -279,7 +306,7 @@ static void inputNormal(wchar_t ch) {
 	switch (ch) {
 		break; case CTRL('L'): clearok(curscr, true);
 
-		break; case ESC: input.mode = MODE_NORMAL; input.shift = 0;
+		break; case ESC: modeNormal(); input.shift = 0;
 		break; case 'q': endwin(); exit(EX_OK);
 
 		break; case 'g': clientFlip();
@@ -336,33 +363,40 @@ static void inputNormal(wchar_t ch) {
 			clientPut(tile.colors[cellY][cellX], tile.cells[cellY][cellX] - 1);
 		}
 
-		break; case 'i': insertMode(1, 0);
-		break; case 'a': clientMove(1, 0); insertMode(1, 0);
-		break; case 'I': input.mode = MODE_DIRECTION;
-		break; case 'r': input.mode = MODE_REPLACE;
-		break; case 'R': input.mode = MODE_DRAW; input.draw = 0;
+		break; case '?': modeHelp();
+		break; case 'R': modeDraw();
+		break; case 'r': modeReplace();
+		break; case 'I': modeDirection();
+		break; case 'i': modeInsert(1, 0);
+		break; case 'a': modeInsert(1, 0); clientMove(1, 0);
 	}
+}
+
+static void inputHelp(wchar_t ch) {
+	(void)ch;
+	if (tile.meta.createTime) drawTile(&tile);
+	modeNormal();
 }
 
 static void inputDirection(wchar_t ch) {
 	switch (ch) {
-		break; case ESC: input.mode = MODE_NORMAL;
-		break; case 'h': insertMode(-1,  0);
-		break; case 'l': insertMode( 1,  0);
-		break; case 'k': insertMode( 0, -1);
-		break; case 'j': insertMode( 0,  1);
-		break; case 'y': insertMode(-1, -1);
-		break; case 'u': insertMode( 1, -1);
-		break; case 'b': insertMode(-1,  1);
-		break; case 'n': insertMode( 1,  1);
+		break; case ESC: modeNormal();
+		break; case 'h': modeInsert(-1,  0);
+		break; case 'l': modeInsert( 1,  0);
+		break; case 'k': modeInsert( 0, -1);
+		break; case 'j': modeInsert( 0,  1);
+		break; case 'y': modeInsert(-1, -1);
+		break; case 'u': modeInsert( 1, -1);
+		break; case 'b': modeInsert(-1,  1);
+		break; case 'n': modeInsert( 1,  1);
 	}
 }
 
 static void inputInsert(wchar_t ch) {
 	switch (ch) {
 		break; case ESC: {
-			input.mode = MODE_NORMAL;
 			clientMove(-insert.dx, -insert.dy);
+			modeNormal();
 		}
 		break; case '\b': case DEL: {
 			clientMove(-insert.dx, -insert.dy);
@@ -390,12 +424,12 @@ static void inputReplace(wchar_t ch) {
 		if (!cell) return;
 		clientPut(tile.colors[cellY][cellX], cell);
 	}
-	input.mode = MODE_NORMAL;
+	modeNormal();
 }
 
 static void inputDraw(wchar_t ch) {
 	if (ch == ESC) {
-		input.mode = MODE_NORMAL;
+		modeNormal();
 		return;
 	}
 	if (input.draw) {
@@ -413,11 +447,12 @@ static void readInput(void) {
 		return;
 	}
 	switch (input.mode) {
+		break; case MODE_HELP:      inputHelp(ch);
 		break; case MODE_NORMAL:    inputNormal(ch);
+		break; case MODE_DRAW:      inputDraw(ch);
+		break; case MODE_REPLACE:   inputReplace(ch);
 		break; case MODE_DIRECTION: inputDirection(ch);
 		break; case MODE_INSERT:    inputInsert(ch);
-		break; case MODE_REPLACE:   inputReplace(ch);
-		break; case MODE_DRAW:      inputDraw(ch);
 	}
 }
 
@@ -433,6 +468,9 @@ int main() {
 	if (error) err(EX_NOINPUT, "torus.sock");
 
 	curse();
+
+	modeHelp();
+	readInput();
 
 	struct pollfd fds[2] = {
 		{ .fd = STDIN_FILENO, .events = POLLIN },

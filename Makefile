@@ -10,6 +10,15 @@ all: tags $(BINS)
 
 $(OBJS): torus.h
 
+client.o: help.h
+
+help.h:
+	head -c 4096 torus.dat \
+		| file2c -s -x 'static const uint8_t HELP_DATA[] = {' '};' \
+		> help.h
+	echo 'static const struct Tile *HELP = (const struct Tile *)HELP_DATA;' \
+		>> help.h
+
 tags: *.h *.c
 	ctags -w *.h *.c
 
