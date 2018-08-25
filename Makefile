@@ -2,7 +2,7 @@ CHROOT_USER = torus
 CHROOT_GROUP = $(CHROOT_USER)
 
 CFLAGS += -Wall -Wextra -Wpedantic
-LDLIBS = -lm -lcursesw
+LDLIBS = -lcursesw
 BINS = server client meta merge
 OBJS = $(BINS:%=%.o)
 
@@ -44,7 +44,6 @@ chroot.tar: server client
 	cp -p -f /libexec/ld-elf.so.1 root/libexec
 	cp -p -f \
 	    /lib/libc.so.7 \
-		/lib/libm.so.5 \
 	    /lib/libedit.so.7 \
 	    /lib/libncurses.so.8 \
 	    /lib/libncursesw.so.8 \
