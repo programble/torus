@@ -8,6 +8,9 @@ OBJS = $(BINS:%=%.o)
 
 all: tags $(BINS)
 
+.o:
+	$(CC) $(LDFLAGS) $< $(LDLIBS) -o $@
+
 $(OBJS): torus.h
 
 client.o: help.h
