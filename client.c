@@ -267,6 +267,7 @@ static struct {
 		MODE_INSERT,
 		MODE_REPLACE,
 		MODE_DRAW,
+		MODE_LINE,
 	} mode;
 	uint8_t color;
 	uint8_t shift;
@@ -286,6 +287,11 @@ static struct {
 	uint8_t len;
 } insert;
 
+static void modeNormal(void) {
+	curs_set(1);
+	move(cellY, cellX);
+	input.mode = MODE_NORMAL;
+}
 static void modeHelp(void) {
 	curs_set(0);
 	drawTile(HELP);
@@ -296,18 +302,6 @@ static void modeMap(void) {
 	clientMap();
 	input.mode = MODE_MAP;
 }
-static void modeNormal(void) {
-	curs_set(1);
-	move(cellY, cellX);
-	input.mode = MODE_NORMAL;
-}
-static void modeDraw(void) {
-	input.draw = 0;
-	input.mode = MODE_DRAW;
-}
-static void modeReplace(void) {
-	input.mode = MODE_REPLACE;
-}
 static void modeDirection(void) {
 	input.mode = MODE_DIRECTION;
 }
@@ -316,6 +310,16 @@ static void modeInsert(int8_t dx, int8_t dy) {
 	insert.dy = dy;
 	insert.len = 0;
 	input.mode = MODE_INSERT;
+}
+static void modeReplace(void) {
+	input.mode = MODE_REPLACE;
+}
+static void modeDraw(void) {
+	input.draw = 0;
+	input.mode = MODE_DRAW;
+}
+static void modeLine(void) {
+	input.mode = MODE_LINE;
 }
 
 static void colorFg(uint8_t fg) {
@@ -457,11 +461,12 @@ static void inputNormal(bool keyCode, wchar_t ch) {
 
 		break; case '?': modeHelp();
 		break; case 'm': modeMap();
-		break; case 'R': modeDraw();
-		break; case 'r': modeReplace(); cellCopy();
 		break; case 'I': modeDirection();
 		break; case 'i': modeInsert(1, 0);
 		break; case 'a': modeInsert(1, 0); clientMove(1, 0);
+		break; case 'r': modeReplace(); cellCopy();
+		break; case 'R': modeDraw();
+		break; case '.': modeLine();
 	}
 }
 
@@ -554,6 +559,87 @@ static void inputDraw(bool keyCode, wchar_t ch) {
 	clientPut(input.color, input.draw);
 }
 
+static uint8_t lineCell(uint8_t cell, int8_t dx, int8_t dy) {
+	if (dx < 0) {
+		switch (CP437[cell]) {
+			default:   return inputCell(L'→');
+			case L'←': return inputCell(L'─'); case L'─': return 0;
+			case L'↑': return inputCell(L'┐'); case L'┐': return 0;
+			case L'↓': return inputCell(L'┘'); case L'┘': return 0;
+			case L'│': return inputCell(L'┤'); case L'┤': return 0;
+			case L'└': return inputCell(L'┴'); case L'┴': return 0;
+			case L'┌': return inputCell(L'┬'); case L'┬': return 0;
+			case L'├': return inputCell(L'┼'); case L'┼': return 0;
+		}
+	} else if (dx > 0) {
+		switch (CP437[cell]) {
+			default:   return inputCell(L'←');
+			case L'→': return inputCell(L'─'); case L'─': return 0;
+			case L'↑': return inputCell(L'┌'); case L'┌': return 0;
+			case L'↓': return inputCell(L'└'); case L'└': return 0;
+			case L'│': return inputCell(L'├'); case L'├': return 0;
+			case L'┘': return inputCell(L'┴'); case L'┴': return 0;
+			case L'┐': return inputCell(L'┬'); case L'┬': return 0;
+			case L'┤': return inputCell(L'┼'); case L'┼': return 0;
+		}
+	} else if (dy < 0) {
+		switch (CP437[cell]) {
+			default:   return inputCell(L'↓');
+			case L'↑': return inputCell(L'│'); case L'│': return 0;
+			case L'←': return inputCell(L'└'); case L'└': return 0;
+			case L'→': return inputCell(L'┘'); case L'┘': return 0;
+			case L'─': return inputCell(L'┴'); case L'┴': return 0;
+			case L'┌': return inputCell(L'├'); case L'├': return 0;
+			case L'┐': return inputCell(L'┤'); case L'┤': return 0;
+			case L'┬': return inputCell(L'┼'); case L'┼': return 0;
+		}
+	} else if (dy > 0) {
+		switch (CP437[cell]) {
+			default:   return inputCell(L'↑');
+			case L'↓': return inputCell(L'│'); case L'│': return 0;
+			case L'←': return inputCell(L'┌'); case L'┌': return 0;
+			case L'→': return inputCell(L'┐'); case L'┐': return 0;
+			case L'─': return inputCell(L'┬'); case L'┬': return 0;
+			case L'└': return inputCell(L'├'); case L'├': return 0;
+			case L'┘': return inputCell(L'┤'); case L'┤': return 0;
+			case L'┴': return inputCell(L'┼'); case L'┼': return 0;
+		}
+	}
+	return 0;
+}
+
+static void inputLine(bool keyCode, wchar_t ch) {
+	int8_t dx = 0;
+	int8_t dy = 0;
+	if (keyCode) {
+		switch (ch) {
+			break; case KEY_LEFT:  dx = -1;
+			break; case KEY_RIGHT: dx =  1;
+			break; case KEY_UP:    dy = -1;
+			break; case KEY_DOWN:  dy =  1;
+			break; default: return;
+		}
+	} else {
+		switch (ch) {
+			break; case ESC: modeNormal(); return;
+			break; case 'h': dx = -1;
+			break; case 'l': dx =  1;
+			break; case 'k': dy = -1;
+			break; case 'j': dy =  1;
+			break; default: return;
+		}
+	}
+	if ((uint8_t)(cellX + dx) >= CELL_COLS) return;
+	if ((uint8_t)(cellY + dy) >= CELL_ROWS) return;
+
+	uint8_t leave = lineCell(tile.cells[cellY][cellX], dx, dy);
+	uint8_t enter = lineCell(tile.cells[cellY + dy][cellX + dx], -dx, -dy);
+
+	if (leave) clientPut(input.color, leave);
+	clientMove(dx, dy);
+	if (enter) clientPut(input.color, enter);
+}
+
 static void readInput(void) {
 	wint_t ch;
 	bool keyCode = (KEY_CODE_YES == get_wch(&ch));
@@ -561,10 +647,11 @@ static void readInput(void) {
 		break; case MODE_NORMAL:    inputNormal(keyCode, ch);
 		break; case MODE_HELP:      inputHelp(keyCode, ch);
 		break; case MODE_MAP:       inputMap(keyCode, ch);
-		break; case MODE_DRAW:      inputDraw(keyCode, ch);
-		break; case MODE_REPLACE:   inputReplace(keyCode, ch);
 		break; case MODE_DIRECTION: inputDirection(keyCode, ch);
 		break; case MODE_INSERT:    inputInsert(keyCode, ch);
+		break; case MODE_REPLACE:   inputReplace(keyCode, ch);
+		break; case MODE_DRAW:      inputDraw(keyCode, ch);
+		break; case MODE_LINE:      inputLine(keyCode, ch);
 	}
 }
 
