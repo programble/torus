@@ -290,6 +290,7 @@ static bool clientMap(const struct Client *client) {
 
 	time_t now = time(NULL);
 	struct Map map = {
+		.now = now,
 		.min = {
 			.createTime = now,
 			.modifyTime = now,

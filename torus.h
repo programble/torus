@@ -104,6 +104,7 @@ enum {
 };
 
 struct Map {
+	time_t now;
 	struct Meta min;
 	struct Meta max;
 	struct Meta meta[MAP_ROWS][MAP_COLS];
