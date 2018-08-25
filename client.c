@@ -487,6 +487,10 @@ static void readInput(void) {
 }
 
 int main() {
+	curse();
+	modeHelp();
+	readInput();
+
 	client = socket(PF_LOCAL, SOCK_STREAM, 0);
 	if (client < 0) err(EX_OSERR, "socket");
 
@@ -496,11 +500,6 @@ int main() {
 	};
 	int error = connect(client, (struct sockaddr *)&addr, sizeof(addr));
 	if (error) err(EX_NOINPUT, "torus.sock");
-
-	curse();
-
-	modeHelp();
-	readInput();
 
 	struct pollfd fds[2] = {
 		{ .fd = STDIN_FILENO, .events = POLLIN },
