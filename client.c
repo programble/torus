@@ -360,22 +360,23 @@ static uint8_t inputCell(wchar_t ch) {
 	return 0;
 }
 
-static void inputKeyCode(wchar_t ch) {
-	switch (ch) {
-		break; case KEY_LEFT:  clientMove(-1,  0);
-		break; case KEY_RIGHT: clientMove( 1,  0);
-		break; case KEY_UP:    clientMove( 0, -1);
-		break; case KEY_DOWN:  clientMove( 0,  1);
+static void inputNormal(bool keyCode, wchar_t ch) {
+	if (keyCode) {
+		switch (ch) {
+			break; case KEY_LEFT:  clientMove(-1,  0);
+			break; case KEY_RIGHT: clientMove( 1,  0);
+			break; case KEY_UP:    clientMove( 0, -1);
+			break; case KEY_DOWN:  clientMove( 0,  1);
 
-		break; case KEY_F(1): input.shift = 0x00;
-		break; case KEY_F(2): input.shift = 0xC0;
-		break; case KEY_F(3): input.shift = 0xA0;
-		break; case KEY_F(4): input.shift = 0x70;
-		break; case KEY_F(5): input.shift = 0x40;
+			break; case KEY_F(1): input.shift = 0x00;
+			break; case KEY_F(2): input.shift = 0xC0;
+			break; case KEY_F(3): input.shift = 0xA0;
+			break; case KEY_F(4): input.shift = 0x70;
+			break; case KEY_F(5): input.shift = 0x40;
+		}
+		return;
 	}
-}
 
-static void inputNormal(wchar_t ch) {
 	switch (ch) {
 		break; case CTRL('L'): clearok(curscr, true);
 
@@ -464,19 +465,22 @@ static void inputNormal(wchar_t ch) {
 	}
 }
 
-static void inputHelp(wchar_t ch) {
+static void inputHelp(bool keyCode, wchar_t ch) {
+	(void)keyCode;
 	(void)ch;
 	if (tile.meta.createTime) drawTile(&tile);
 	modeNormal();
 }
 
-static void inputMap(wchar_t ch) {
+static void inputMap(bool keyCode, wchar_t ch) {
+	(void)keyCode;
 	(void)ch;
 	drawTile(&tile);
 	modeNormal();
 }
 
-static void inputDirection(wchar_t ch) {
+static void inputDirection(bool keyCode, wchar_t ch) {
+	if (keyCode) return;
 	switch (ch) {
 		break; case ESC: modeNormal();
 		break; case 'h': modeInsert(-1,  0);
@@ -490,7 +494,11 @@ static void inputDirection(wchar_t ch) {
 	}
 }
 
-static void inputInsert(wchar_t ch) {
+static void inputInsert(bool keyCode, wchar_t ch) {
+	if (keyCode) {
+		inputNormal(keyCode, ch);
+		return;
+	}
 	switch (ch) {
 		break; case ESC: {
 			clientMove(-insert.dx, -insert.dy);
@@ -516,7 +524,11 @@ static void inputInsert(wchar_t ch) {
 	}
 }
 
-static void inputReplace(wchar_t ch) {
+static void inputReplace(bool keyCode, wchar_t ch) {
+	if (keyCode) {
+		inputNormal(keyCode, ch);
+		return;
+	}
 	if (ch != ESC) {
 		uint8_t cell = inputCell(ch);
 		if (!cell) return;
@@ -525,14 +537,18 @@ static void inputReplace(wchar_t ch) {
 	modeNormal();
 }
 
-static void inputDraw(wchar_t ch) {
-	if (ch == ESC) {
+static void inputDraw(bool keyCode, wchar_t ch) {
+	if (!keyCode && ch == ESC) {
 		modeNormal();
 		return;
 	}
 	if (input.draw) {
-		inputNormal(ch);
+		inputNormal(keyCode, ch);
 	} else {
+		if (keyCode) {
+			inputNormal(keyCode, ch);
+			return;
+		}
 		input.draw = inputCell(ch);
 	}
 	clientPut(input.color, input.draw);
@@ -540,18 +556,15 @@ static void inputDraw(wchar_t ch) {
 
 static void readInput(void) {
 	wint_t ch;
-	if (KEY_CODE_YES == get_wch(&ch)) {
-		inputKeyCode(ch);
-		return;
-	}
+	bool keyCode = (KEY_CODE_YES == get_wch(&ch));
 	switch (input.mode) {
-		break; case MODE_NORMAL:    inputNormal(ch);
-		break; case MODE_HELP:      inputHelp(ch);
-		break; case MODE_MAP:       inputMap(ch);
-		break; case MODE_DRAW:      inputDraw(ch);
-		break; case MODE_REPLACE:   inputReplace(ch);
-		break; case MODE_DIRECTION: inputDirection(ch);
-		break; case MODE_INSERT:    inputInsert(ch);
+		break; case MODE_NORMAL:    inputNormal(keyCode, ch);
+		break; case MODE_HELP:      inputHelp(keyCode, ch);
+		break; case MODE_MAP:       inputMap(keyCode, ch);
+		break; case MODE_DRAW:      inputDraw(keyCode, ch);
+		break; case MODE_REPLACE:   inputReplace(keyCode, ch);
+		break; case MODE_DIRECTION: inputDirection(keyCode, ch);
+		break; case MODE_INSERT:    inputInsert(keyCode, ch);
 	}
 }
 
