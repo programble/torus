@@ -37,6 +37,8 @@
 #define err(...) do { endwin(); err(__VA_ARGS__); } while(0)
 #define errx(...) do { endwin(); errx(__VA_ARGS__); } while (0)
 
+#define DIV_ROUND(a, b) (((a) + (b) / 2) / (b))
+
 #define CTRL(ch) ((ch) ^ 0x40)
 enum {
 	ESC = 0x1B,
@@ -152,7 +154,60 @@ static void serverCursor(struct ServerMessage msg) {
 	}
 }
 
+static const uint8_t MAP_X = (CELL_COLS / 2) - (3 * MAP_COLS / 2);
+static const uint8_t MAP_Y = (CELL_ROWS / 2) - (MAP_ROWS / 2);
+
+static const wchar_t MAP_CELLS[5] = L" ░▒▓█";
+static const uint8_t MAP_COLORS[] = {
+	COLOR_BLUE, COLOR_CYAN, COLOR_GREEN, COLOR_YELLOW, COLOR_RED,
+};
+
 static void serverMap(void) {
+	int t = MAP_Y - 1;
+	int l = MAP_X - 1;
+	int b = MAP_Y + MAP_ROWS;
+	int r = MAP_X + 3 * MAP_COLS;
+	color_set(colorPair(COLOR_WHITE), NULL);
+	mvhline(t, MAP_X, ACS_HLINE, 3 * MAP_COLS);
+	mvhline(b, MAP_X, ACS_HLINE, 3 * MAP_COLS);
+	mvvline(MAP_Y, l, ACS_VLINE, MAP_ROWS);
+	mvvline(MAP_Y, r, ACS_VLINE, MAP_ROWS);
+	mvaddch(t, l, ACS_ULCORNER);
+	mvaddch(t, r, ACS_URCORNER);
+	mvaddch(b, l, ACS_LLCORNER);
+	mvaddch(b, r, ACS_LRCORNER);
+	color_set(0, NULL);
+
+	struct Map map;
+	ssize_t size = recv(client, &map, sizeof(map), 0);
+	if (size < 0) err(EX_IOERR, "recv");
+	if ((size_t)size < sizeof(map)) errx(EX_PROTOCOL, "truncated map");
+
+	if (0 == map.max.modifyCount) return;
+	if (0 == map.now - map.min.createTime) return;
+
+	for (uint8_t y = 0; y < MAP_ROWS; ++y) {
+		for (uint8_t x = 0; x < MAP_COLS; ++x) {
+			struct Meta meta = map.meta[y][x];
+
+			uint32_t count = DIV_ROUND(
+				(ARRAY_LEN(MAP_CELLS) - 1) * meta.modifyCount,
+				map.max.modifyCount
+			);
+			uint32_t time = DIV_ROUND(
+				(ARRAY_LEN(MAP_COLORS) - 1) * (meta.modifyTime - map.min.createTime),
+				map.now - map.min.createTime
+			);
+			if (!meta.modifyTime) time = 0;
+
+			wchar_t cell = MAP_CELLS[count];
+			uint8_t color = MAP_COLORS[time];
+			wchar_t tile[] = { cell, cell, cell, L'\0' };
+			attr_set(colorAttr(color), colorPair(color), NULL);
+			mvaddwstr(MAP_Y + y, MAP_X + 3 * x, tile);
+		}
+	}
+	attr_set(A_NORMAL, 0, NULL);
 }
 
 static void readMessage(void) {
@@ -207,6 +262,7 @@ static struct {
 	enum {
 		MODE_NORMAL,
 		MODE_HELP,
+		MODE_MAP,
 		MODE_DIRECTION,
 		MODE_INSERT,
 		MODE_REPLACE,
@@ -234,6 +290,11 @@ static void modeHelp(void) {
 	curs_set(0);
 	drawTile(HELP);
 	input.mode = MODE_HELP;
+}
+static void modeMap(void) {
+	curs_set(0);
+	clientMap();
+	input.mode = MODE_MAP;
 }
 static void modeNormal(void) {
 	curs_set(1);
@@ -394,6 +455,7 @@ static void inputNormal(wchar_t ch) {
 		}
 
 		break; case '?': modeHelp();
+		break; case 'm': modeMap();
 		break; case 'R': modeDraw();
 		break; case 'r': modeReplace(); cellCopy();
 		break; case 'I': modeDirection();
@@ -405,6 +467,12 @@ static void inputNormal(wchar_t ch) {
 static void inputHelp(wchar_t ch) {
 	(void)ch;
 	if (tile.meta.createTime) drawTile(&tile);
+	modeNormal();
+}
+
+static void inputMap(wchar_t ch) {
+	(void)ch;
+	drawTile(&tile);
 	modeNormal();
 }
 
@@ -477,8 +545,9 @@ static void readInput(void) {
 		return;
 	}
 	switch (input.mode) {
-		break; case MODE_HELP:      inputHelp(ch);
 		break; case MODE_NORMAL:    inputNormal(ch);
+		break; case MODE_HELP:      inputHelp(ch);
+		break; case MODE_MAP:       inputMap(ch);
 		break; case MODE_DRAW:      inputDraw(ch);
 		break; case MODE_REPLACE:   inputReplace(ch);
 		break; case MODE_DIRECTION: inputDirection(ch);
