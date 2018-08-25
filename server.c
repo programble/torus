@@ -288,12 +288,61 @@ static bool clientMap(const struct Client *client) {
 	int32_t mapY = (int32_t)client->tileY - MAP_ROWS / 2;
 	int32_t mapX = (int32_t)client->tileX - MAP_COLS / 2;
 
-	struct Map map;
+	time_t now = time(NULL);
+	struct Map map = {
+		.min = {
+			.createTime = now,
+			.modifyTime = now,
+			.accessTime = now,
+			.modifyCount = UINT32_MAX,
+			.accessCount = UINT32_MAX,
+		},
+	};
+
 	for (int32_t y = 0; y < MAP_ROWS; ++y) {
 		for (int32_t x = 0; x < MAP_COLS; ++x) {
 			uint32_t tileY = ((mapY + y) % TILE_ROWS + TILE_ROWS) % TILE_ROWS;
 			uint32_t tileX = ((mapX + x) % TILE_COLS + TILE_COLS) % TILE_COLS;
-			map.meta[y][x] = tiles[tileY * TILE_ROWS + tileX].meta;
+			struct Meta meta = tiles[tileY * TILE_ROWS + tileX].meta;
+
+			if (meta.createTime) {
+				if (meta.createTime < map.min.createTime) {
+					map.min.createTime = meta.createTime;
+				}
+				if (meta.createTime > map.max.createTime) {
+					map.max.createTime = meta.createTime;
+				}
+			}
+			if (meta.modifyTime) {
+				if (meta.modifyTime < map.min.modifyTime) {
+					map.min.modifyTime = meta.modifyTime;
+				}
+				if (meta.modifyTime > map.max.modifyTime) {
+					map.max.modifyTime = meta.modifyTime;
+				}
+			}
+			if (meta.accessTime) {
+				if (meta.accessTime < map.min.accessTime) {
+					map.min.accessTime = meta.accessTime;
+				}
+				if (meta.accessTime > map.max.accessTime) {
+					map.max.accessTime = meta.accessTime;
+				}
+			}
+			if (meta.modifyCount < map.min.modifyCount) {
+				map.min.modifyCount = meta.modifyCount;
+			}
+			if (meta.modifyCount > map.max.modifyCount) {
+				map.max.modifyCount = meta.modifyCount;
+			}
+			if (meta.accessCount < map.min.accessCount) {
+				map.min.accessCount = meta.accessCount;
+			}
+			if (meta.accessCount > map.max.accessCount) {
+				map.max.accessCount = meta.accessCount;
+			}
+
+			map.meta[y][x] = meta;
 		}
 	}
 
