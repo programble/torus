@@ -8,14 +8,6 @@ OBJS = $(BINS:%=%.o)
 
 all: tags $(BINS)
 
-server: server.o
-
-client: client.o
-
-meta: meta.o
-
-merge: merge.o
-
 $(OBJS): torus.h
 
 client.o: help.h
