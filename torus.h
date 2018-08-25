@@ -99,8 +99,8 @@ static const uint32_t TILE_INIT_X = TILE_COLS / 2;
 static const uint32_t TILE_INIT_Y = TILE_ROWS / 2;
 
 enum {
-	MAP_ROWS = 11,
-	MAP_COLS = 11,
+	MAP_ROWS = 7,
+	MAP_COLS = 7,
 };
 
 struct Map {
