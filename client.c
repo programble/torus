@@ -291,6 +291,7 @@ static void cellSwap(int8_t dx, int8_t dy) {
 }
 
 static uint8_t inputCell(wchar_t ch) {
+	if (ch == ' ') return ' ';
 	if (ch < 0x80) return (uint8_t)ch + input.shift;
 	for (size_t i = 0; i < ARRAY_LEN(CP437); ++i) {
 		if (ch == CP437[i]) return i;
