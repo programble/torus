@@ -263,10 +263,11 @@ static void colorFg(uint8_t fg) {
 static void colorBg(uint8_t bg) {
 	input.color = (input.color & 0x0F) | (bg & 0x07) << 4;
 }
-static void colorInvert(void) {
-	input.color = (input.color & 0x08)
-		| (input.color & 0x70) >> 4
-		| (input.color & 0x07) << 4;
+
+static uint8_t colorInvert(uint8_t color) {
+	return (color & 0x08)
+		| (color & 0x70) >> 4
+		| (color & 0x07) << 4;
 }
 
 static void cellCopy(void) {
@@ -347,8 +348,8 @@ static void inputNormal(wchar_t ch) {
 		break; case '^': colorBg(COLOR_CYAN);
 		break; case '&': colorBg(COLOR_WHITE);
 
-		break; case '8': case '*': input.color ^= COLOR_BRIGHT;
-		break; case '9': case '(': colorInvert();
+		break; case '8': input.color ^= COLOR_BRIGHT;
+		break; case '9': input.color = colorInvert(input.color);
 		break; case '`': input.color = tile.colors[cellY][cellX];
 
 		break; case 'H': cellSwap(-1,  0);
@@ -361,11 +362,26 @@ static void inputNormal(wchar_t ch) {
 		break; case 'N': cellSwap( 1,  1);
 
 		break; case 's': cellCopy();
+		break; case 'x': cellCopy(); clientPut(copy.color, ' ');
 		break; case 'p': clientPut(copy.color, copy.cell);
 
-		break; case 'x': cellCopy(); clientPut(copy.color, ' ');
 		break; case '~': {
+			cellCopy();
 			clientPut(input.color, tile.cells[cellY][cellX]);
+			clientMove(1, 0);
+		}
+		break; case '*': {
+			clientPut(
+				tile.colors[cellY][cellX] ^ COLOR_BRIGHT,
+				tile.cells[cellY][cellX]
+			);
+			clientMove(1, 0);
+		}
+		break; case '(': {
+			clientPut(
+				colorInvert(tile.colors[cellY][cellX]),
+				tile.cells[cellY][cellX]
+			);
 			clientMove(1, 0);
 		}
 
