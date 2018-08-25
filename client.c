@@ -220,24 +220,29 @@ static struct {
 };
 
 static struct {
+	uint8_t color;
+	uint8_t cell;
+} copy;
+
+static struct {
 	int8_t dx;
 	int8_t dy;
 	uint8_t len;
 } insert;
 
 static void modeHelp(void) {
-	input.mode = MODE_HELP;
-	drawTile(HELP);
 	curs_set(0);
+	drawTile(HELP);
+	input.mode = MODE_HELP;
 }
 static void modeNormal(void) {
-	input.mode = MODE_NORMAL;
-	move(cellY, cellX);
 	curs_set(1);
+	move(cellY, cellX);
+	input.mode = MODE_NORMAL;
 }
 static void modeDraw(void) {
-	input.mode = MODE_DRAW;
 	input.draw = 0;
+	input.mode = MODE_DRAW;
 }
 static void modeReplace(void) {
 	input.mode = MODE_REPLACE;
@@ -246,25 +251,30 @@ static void modeDirection(void) {
 	input.mode = MODE_DIRECTION;
 }
 static void modeInsert(int8_t dx, int8_t dy) {
-	input.mode = MODE_INSERT;
 	insert.dx = dx;
 	insert.dy = dy;
 	insert.len = 0;
+	input.mode = MODE_INSERT;
 }
 
-static void inputFg(uint8_t fg) {
+static void colorFg(uint8_t fg) {
 	input.color = (input.color & 0x78) | (fg & 0x07);
 }
-static void inputBg(uint8_t bg) {
+static void colorBg(uint8_t bg) {
 	input.color = (input.color & 0x0F) | (bg & 0x07) << 4;
 }
-static void inputInvert(void) {
+static void colorInvert(void) {
 	input.color = (input.color & 0x08)
 		| (input.color & 0x70) >> 4
 		| (input.color & 0x07) << 4;
 }
 
-static void inputSwap(int8_t dx, int8_t dy) {
+static void cellCopy(void) {
+	copy.color = tile.colors[cellY][cellX];
+	copy.cell = tile.cells[cellY][cellX];
+}
+
+static void cellSwap(int8_t dx, int8_t dy) {
 	if ((uint8_t)(cellX + dx) >= CELL_COLS) return;
 	if ((uint8_t)(cellY + dy) >= CELL_ROWS) return;
 
@@ -319,38 +329,41 @@ static void inputNormal(wchar_t ch) {
 		break; case 'b': clientMove(-1,  1);
 		break; case 'n': clientMove( 1,  1);
 
-		break; case '0': inputFg(COLOR_BLACK);
-		break; case '1': inputFg(COLOR_RED);
-		break; case '2': inputFg(COLOR_GREEN);
-		break; case '3': inputFg(COLOR_YELLOW);
-		break; case '4': inputFg(COLOR_BLUE);
-		break; case '5': inputFg(COLOR_MAGENTA);
-		break; case '6': inputFg(COLOR_CYAN);
-		break; case '7': inputFg(COLOR_WHITE);
+		break; case '0': colorFg(COLOR_BLACK);
+		break; case '1': colorFg(COLOR_RED);
+		break; case '2': colorFg(COLOR_GREEN);
+		break; case '3': colorFg(COLOR_YELLOW);
+		break; case '4': colorFg(COLOR_BLUE);
+		break; case '5': colorFg(COLOR_MAGENTA);
+		break; case '6': colorFg(COLOR_CYAN);
+		break; case '7': colorFg(COLOR_WHITE);
 
-		break; case ')': inputBg(COLOR_BLACK);
-		break; case '!': inputBg(COLOR_RED);
-		break; case '@': inputBg(COLOR_GREEN);
-		break; case '#': inputBg(COLOR_YELLOW);
-		break; case '$': inputBg(COLOR_BLUE);
-		break; case '%': inputBg(COLOR_MAGENTA);
-		break; case '^': inputBg(COLOR_CYAN);
-		break; case '&': inputBg(COLOR_WHITE);
+		break; case ')': colorBg(COLOR_BLACK);
+		break; case '!': colorBg(COLOR_RED);
+		break; case '@': colorBg(COLOR_GREEN);
+		break; case '#': colorBg(COLOR_YELLOW);
+		break; case '$': colorBg(COLOR_BLUE);
+		break; case '%': colorBg(COLOR_MAGENTA);
+		break; case '^': colorBg(COLOR_CYAN);
+		break; case '&': colorBg(COLOR_WHITE);
 
 		break; case '8': case '*': input.color ^= COLOR_BRIGHT;
-		break; case '9': case '(': inputInvert();
+		break; case '9': case '(': colorInvert();
 		break; case '`': input.color = tile.colors[cellY][cellX];
 
-		break; case 'H': inputSwap(-1,  0);
-		break; case 'L': inputSwap( 1,  0);
-		break; case 'K': inputSwap( 0, -1);
-		break; case 'J': inputSwap( 0,  1);
-		break; case 'Y': inputSwap(-1, -1);
-		break; case 'U': inputSwap( 1, -1);
-		break; case 'B': inputSwap(-1,  1);
-		break; case 'N': inputSwap( 1,  1);
+		break; case 'H': cellSwap(-1,  0);
+		break; case 'L': cellSwap( 1,  0);
+		break; case 'K': cellSwap( 0, -1);
+		break; case 'J': cellSwap( 0,  1);
+		break; case 'Y': cellSwap(-1, -1);
+		break; case 'U': cellSwap( 1, -1);
+		break; case 'B': cellSwap(-1,  1);
+		break; case 'N': cellSwap( 1,  1);
 
-		break; case 'x': clientPut(tile.colors[cellY][cellX], ' ');
+		break; case 's': cellCopy();
+		break; case 'p': clientPut(copy.color, copy.cell);
+
+		break; case 'x': cellCopy(); clientPut(copy.color, ' ');
 		break; case '~': {
 			clientPut(input.color, tile.cells[cellY][cellX]);
 			clientMove(1, 0);
@@ -365,7 +378,7 @@ static void inputNormal(wchar_t ch) {
 
 		break; case '?': modeHelp();
 		break; case 'R': modeDraw();
-		break; case 'r': modeReplace();
+		break; case 'r': modeReplace(); cellCopy();
 		break; case 'I': modeDirection();
 		break; case 'i': modeInsert(1, 0);
 		break; case 'a': modeInsert(1, 0); clientMove(1, 0);
