@@ -621,7 +621,7 @@ static void inputLine(bool keyCode, wchar_t ch) {
 		}
 	} else {
 		switch (ch) {
-			break; case ESC: modeNormal(); return;
+			break; case ESC: case '.': modeNormal(); return;
 			break; case 'h': dx = -1;
 			break; case 'l': dx =  1;
 			break; case 'k': dy = -1;
