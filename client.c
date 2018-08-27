@@ -667,7 +667,17 @@ static void readInput(void) {
 	}
 }
 
-int main() {
+int main(int argc, char *argv[]) {
+	int opt;
+	while (0 < (opt = getopt(argc, argv, "h"))) {
+		if (opt == 'h') {
+			fwrite(HELP_DATA, sizeof(HELP_DATA), 1, stdout);
+			return EX_OK;
+		} else {
+			return EX_USAGE;
+		}
+	}
+
 	curse();
 	modeHelp();
 	readInput();
