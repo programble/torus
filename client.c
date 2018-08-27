@@ -16,6 +16,7 @@
 
 #define _XOPEN_SOURCE_EXTENDED
 
+#include <assert.h>
 #include <curses.h>
 #include <err.h>
 #include <errno.h>
@@ -44,6 +45,11 @@ enum {
 	ESC = 0x1B,
 	DEL = 0x7F,
 };
+
+static uint32_t log2(uint32_t n) {
+	assert(n > 0);
+	return 32 - __builtin_clz(n) - 1;
+}
 
 static void curse(void) {
 	setlocale(LC_CTYPE, "");
@@ -190,15 +196,21 @@ static void serverMap(void) {
 		for (uint8_t x = 0; x < MAP_COLS; ++x) {
 			struct Meta meta = map.meta[y][x];
 
-			uint32_t count = DIV_ROUND(
-				(ARRAY_LEN(MAP_CELLS) - 1) * meta.modifyCount,
-				map.max.modifyCount
-			);
-			uint32_t time = DIV_ROUND(
-				(ARRAY_LEN(MAP_COLORS) - 1) * (meta.modifyTime - map.min.createTime),
-				map.now - map.min.createTime
-			);
-			if (!meta.modifyTime) time = 0;
+			uint32_t count = 0;
+			if (meta.modifyCount && log2(map.max.modifyCount)) {
+				count = DIV_ROUND(
+					(ARRAY_LEN(MAP_CELLS) - 1) * log2(meta.modifyCount),
+					log2(map.max.modifyCount)
+				);
+			}
+			uint32_t time = 0;
+			if (meta.modifyTime) {
+				uint32_t modify = meta.modifyTime - map.min.createTime;
+				time = DIV_ROUND(
+					(ARRAY_LEN(MAP_COLORS) - 1) * modify,
+					map.now - map.min.createTime
+				);
+			}
 
 			wchar_t cell = MAP_CELLS[count];
 			uint8_t color = MAP_COLORS[time];
