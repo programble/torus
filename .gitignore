@@ -1,6 +1,6 @@
+*.o
 chroot.tar
 client
-help
 merge
 meta
 root

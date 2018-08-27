@@ -58,25 +58,25 @@ static void tilesMap(void) {
 
 static struct Tile *tileGet(uint32_t tileX, uint32_t tileY) {
 	struct Tile *tile = &tiles[tileY * TILE_ROWS + tileX];
-	if (!tile->createTime) {
+	if (!tile->meta.createTime) {
 		memset(tile->cells, ' ', CELLS_SIZE);
 		memset(tile->colors, COLOR_WHITE, CELLS_SIZE);
-		tile->createTime = time(NULL);
+		tile->meta.createTime = time(NULL);
 	}
 	return tile;
 }
 
 static struct Tile *tileAccess(uint32_t tileX, uint32_t tileY) {
 	struct Tile *tile = tileGet(tileX, tileY);
-	tile->accessTime = time(NULL);
-	tile->accessCount++;
+	tile->meta.accessTime = time(NULL);
+	tile->meta.accessCount++;
 	return tile;
 }
 
 static struct Tile *tileModify(uint32_t tileX, uint32_t tileY) {
 	struct Tile *tile = tileGet(tileX, tileY);
-	tile->modifyTime = time(NULL);
-	tile->modifyCount++;
+	tile->meta.modifyTime = time(NULL);
+	tile->meta.modifyCount++;
 	return tile;
 }
 
@@ -97,8 +97,8 @@ static struct Client *clientAdd(int fd) {
 	if (!client) err(EX_OSERR, "malloc");
 
 	client->fd = fd;
-	client->tileX = TILE_VOID_X;
-	client->tileY = TILE_VOID_Y;
+	client->tileX = TILE_INIT_X;
+	client->tileY = TILE_INIT_Y;
 	client->cellX = CELL_INIT_X;
 	client->cellY = CELL_INIT_Y;
 
@@ -172,7 +172,7 @@ static bool clientCursors(const struct Client *client) {
 	return true;
 }
 
-static bool clientUpdate(const struct Client *client, const struct Client *old) {
+static bool clientUpdate(struct Client *client, const struct Client *old) {
 	struct ServerMessage msg = {
 		.type = SERVER_MOVE,
 		.move = { .cellX = client->cellX, .cellY = client->cellY },
@@ -217,16 +217,6 @@ static bool clientUpdate(const struct Client *client, const struct Client *old) 
 	return true;
 }
 
-static bool clientSpawn(struct Client *client, uint8_t spawn) {
-	if (spawn >= ARRAY_LEN(SPAWNS)) return false;
-	struct Client old = *client;
-	client->tileX = SPAWNS[spawn].tileX;
-	client->tileY = SPAWNS[spawn].tileY;
-	client->cellX = CELL_INIT_X;
-	client->cellY = CELL_INIT_Y;
-	return clientUpdate(client, &old);
-}
-
 static bool clientMove(struct Client *client, int8_t dx, int8_t dy) {
 	struct Client old = *client;
 
@@ -268,7 +258,14 @@ static bool clientMove(struct Client *client, int8_t dx, int8_t dy) {
 	return clientUpdate(client, &old);
 }
 
-static bool clientPut(const struct Client *client, uint8_t color, char cell) {
+static bool clientFlip(struct Client *client) {
+	struct Client old = *client;
+	client->tileX = (client->tileX + TILE_COLS / 2) % TILE_COLS;
+	client->tileY = (client->tileY + TILE_ROWS / 2) % TILE_ROWS;
+	return clientUpdate(client, &old);
+}
+
+static bool clientPut(const struct Client *client, uint8_t color, uint8_t cell) {
 	struct Tile *tile = tileModify(client->tileX, client->tileY);
 	tile->colors[client->cellY][client->cellX] = color;
 	tile->cells[client->cellY][client->cellX] = cell;
@@ -291,20 +288,62 @@ static bool clientMap(const struct Client *client) {
 	int32_t mapY = (int32_t)client->tileY - MAP_ROWS / 2;
 	int32_t mapX = (int32_t)client->tileX - MAP_COLS / 2;
 
-	struct Map map;
+	time_t now = time(NULL);
+	struct Map map = {
+		.now = now,
+		.min = {
+			.createTime = now,
+			.modifyTime = now,
+			.accessTime = now,
+			.modifyCount = UINT32_MAX,
+			.accessCount = UINT32_MAX,
+		},
+	};
+
 	for (int32_t y = 0; y < MAP_ROWS; ++y) {
 		for (int32_t x = 0; x < MAP_COLS; ++x) {
 			uint32_t tileY = ((mapY + y) % TILE_ROWS + TILE_ROWS) % TILE_ROWS;
 			uint32_t tileX = ((mapX + x) % TILE_COLS + TILE_COLS) % TILE_COLS;
+			struct Meta meta = tiles[tileY * TILE_ROWS + tileX].meta;
 
-			const struct Tile *tile = &tiles[tileY * TILE_ROWS + tileX];
-			map.tiles[y][x] = (struct MapTile) {
-				.createTime = tile->createTime,
-				.modifyTime = tile->modifyTime,
-				.accessTime = tile->accessTime,
-				.modifyCount = tile->modifyCount,
-				.accessCount = tile->accessCount,
-			};
+			if (meta.createTime) {
+				if (meta.createTime < map.min.createTime) {
+					map.min.createTime = meta.createTime;
+				}
+				if (meta.createTime > map.max.createTime) {
+					map.max.createTime = meta.createTime;
+				}
+			}
+			if (meta.modifyTime) {
+				if (meta.modifyTime < map.min.modifyTime) {
+					map.min.modifyTime = meta.modifyTime;
+				}
+				if (meta.modifyTime > map.max.modifyTime) {
+					map.max.modifyTime = meta.modifyTime;
+				}
+			}
+			if (meta.accessTime) {
+				if (meta.accessTime < map.min.accessTime) {
+					map.min.accessTime = meta.accessTime;
+				}
+				if (meta.accessTime > map.max.accessTime) {
+					map.max.accessTime = meta.accessTime;
+				}
+			}
+			if (meta.modifyCount < map.min.modifyCount) {
+				map.min.modifyCount = meta.modifyCount;
+			}
+			if (meta.modifyCount > map.max.modifyCount) {
+				map.max.modifyCount = meta.modifyCount;
+			}
+			if (meta.accessCount < map.min.accessCount) {
+				map.min.accessCount = meta.accessCount;
+			}
+			if (meta.accessCount > map.max.accessCount) {
+				map.max.accessCount = meta.accessCount;
+			}
+
+			map.meta[y][x] = meta;
 		}
 	}
 
@@ -366,7 +405,11 @@ int main() {
 			nevents = kevent(kq, &event, 1, NULL, 0, NULL);
 			if (nevents < 0) err(EX_IOERR, "kevent");
 
-			if (!clientSpawn(client, 0)) clientRemove(client);
+			struct ServerMessage msg = { .type = SERVER_TILE };
+			bool success = clientSend(client, msg)
+				&& clientMove(client, 0, 0)
+				&& clientCursors(client);
+			if (!success) clientRemove(client);
 
 			continue;
 		}
@@ -389,11 +432,15 @@ int main() {
 			break; case CLIENT_MOVE: {
 				success = clientMove(client, msg.move.dx, msg.move.dy);
 			}
+			break; case CLIENT_FLIP: {
+				success = clientFlip(client);
+			}
 			break; case CLIENT_PUT: {
 				success = clientPut(client, msg.put.color, msg.put.cell);
 			}
-			break; case CLIENT_SPAWN: success = clientSpawn(client, msg.spawn);
-			break; case CLIENT_MAP: success = clientMap(client);
+			break; case CLIENT_MAP: {
+				success = clientMap(client);
+			}
 		}
 		if (!success) clientRemove(client);
 	}

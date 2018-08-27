@@ -15,14 +15,13 @@
  */
 
 #include <assert.h>
+#include <stdalign.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <time.h>
-
-#define PACKED __attribute__((packed))
-#define ALIGNED(x) __attribute__((aligned(x)))
+#include <wchar.h>
 
 #define ARRAY_LEN(a) (sizeof(a) / sizeof((a)[0]))
 
@@ -47,65 +46,72 @@ enum {
 	COLOR_BRIGHT,
 };
 
+static const wchar_t CP437[256] = (
+	L" ☺☻♥♦♣♠•◘○◙♂♀♪♫☼"
+	L"►◄↕‼¶§▬↨↑↓→←∟↔▲▼"
+	L" !\"#$%&'()*+,-./"
+	L"0123456789:;<=>?"
+	L"@ABCDEFGHIJKLMNO"
+	L"PQRSTUVWXYZ[\\]^_"
+	L"`abcdefghijklmno"
+	L"pqrstuvwxyz{|}~⌂"
+	L"ÇüéâäàåçêëèïîìÄÅ"
+	L"ÉæÆôöòûùÿÖÜ¢£¥₧ƒ"
+	L"áíóúñÑªº¿⌐¬½¼¡«»"
+	L"░▒▓│┤╡╢╖╕╣║╗╝╜╛┐"
+	L"└┴┬├─┼╞╟╚╔╩╦╠═╬╧"
+	L"╨╤╥╙╘╒╓╫╪┘┌█▄▌▐▀"
+	L"αßΓπΣσµτΦΘΩδ∞φε∩"
+	L"≡±≥≤⌠⌡÷≈°∙·√ⁿ²■ "
+);
+
 enum {
-	CELL_ROWS = 25,
+	CELL_ROWS = 24,
 	CELL_COLS = 80,
 };
-static const size_t CELLS_SIZE = sizeof(char[CELL_ROWS][CELL_COLS]);
+static const size_t CELLS_SIZE = sizeof(uint8_t[CELL_ROWS][CELL_COLS]);
 
 static const uint8_t CELL_INIT_X = CELL_COLS / 2;
 static const uint8_t CELL_INIT_Y = CELL_ROWS / 2;
 
-struct ALIGNED(4096) Tile {
+struct Meta {
 	time_t createTime;
 	time_t modifyTime;
-	char ALIGNED(16) cells[CELL_ROWS][CELL_COLS];
-	uint8_t ALIGNED(16) colors[CELL_ROWS][CELL_COLS];
+	time_t accessTime;
 	uint32_t modifyCount;
 	uint32_t accessCount;
-	time_t accessTime;
+};
+
+struct Tile {
+	alignas(4096) uint8_t cells[CELL_ROWS][CELL_COLS];
+	uint8_t colors[CELL_ROWS][CELL_COLS];
+	struct Meta meta;
 };
 static_assert(4096 == sizeof(struct Tile), "struct Tile is page-sized");
-static_assert(16 == offsetof(struct Tile, cells), "stable cells offset");
-static_assert(2016 == offsetof(struct Tile, colors), "stable colors offset");
 
 enum {
-	TILE_ROWS = 512,
-	TILE_COLS = 512,
+	TILE_ROWS = 64,
+	TILE_COLS = 64,
 };
 static const size_t TILES_SIZE = sizeof(struct Tile[TILE_ROWS][TILE_COLS]);
 
-static const uint32_t TILE_VOID_X = UINT32_MAX;
-static const uint32_t TILE_VOID_Y = UINT32_MAX;
-
-static const struct {
-	uint32_t tileX;
-	uint32_t tileY;
-} SPAWNS[] = {
-	{ 0, 0 },
-	{ TILE_COLS * 3 / 4, TILE_ROWS * 3 / 4 }, // NW
-	{ TILE_COLS * 1 / 4, TILE_ROWS * 3 / 4 }, // NE
-	{ TILE_COLS * 1 / 4, TILE_ROWS * 1 / 4 }, // SE
-	{ TILE_COLS * 3 / 4, TILE_ROWS * 1 / 4 }, // SW
-};
+static const uint32_t TILE_INIT_X = TILE_COLS / 2;
+static const uint32_t TILE_INIT_Y = TILE_ROWS / 2;
 
 enum {
-	MAP_ROWS = 11,
-	MAP_COLS = 11,
+	MAP_ROWS = 7,
+	MAP_COLS = 7,
 };
 
 struct Map {
-	struct MapTile {
-		time_t createTime;
-		time_t modifyTime;
-		time_t accessTime;
-		uint32_t modifyCount;
-		uint32_t accessCount;
-	} tiles[MAP_ROWS][MAP_COLS];
+	time_t now;
+	struct Meta min;
+	struct Meta max;
+	struct Meta meta[MAP_ROWS][MAP_COLS];
 };
 
 struct ServerMessage {
-	enum PACKED {
+	enum {
 		SERVER_TILE,
 		SERVER_MOVE,
 		SERVER_PUT,
@@ -121,7 +127,7 @@ struct ServerMessage {
 			uint8_t cellX;
 			uint8_t cellY;
 			uint8_t color;
-			char cell;
+			uint8_t cell;
 		} put;
 		struct {
 			uint8_t oldCellX;
@@ -135,10 +141,10 @@ struct ServerMessage {
 static const uint8_t CURSOR_NONE = UINT8_MAX;
 
 struct ClientMessage {
-	enum PACKED {
+	enum {
 		CLIENT_MOVE,
+		CLIENT_FLIP,
 		CLIENT_PUT,
-		CLIENT_SPAWN,
 		CLIENT_MAP,
 	} type;
 	union {
@@ -148,8 +154,7 @@ struct ClientMessage {
 		} move;
 		struct {
 			uint8_t color;
-			char cell;
+			uint8_t cell;
 		} put;
-		uint8_t spawn;
 	};
 };
