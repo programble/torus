@@ -17,9 +17,9 @@ client.o: help.h
 
 help.h:
 	head -c 4096 torus.dat \
-		| file2c -s -x 'static const uint8_t HELP_DATA[] = {' '};' \
+		| file2c -s -x 'static const uint8_t HelpData[] = {' '};' \
 		> help.h
-	echo 'static const struct Tile *HELP = (const struct Tile *)HELP_DATA;' \
+	echo 'static const struct Tile *Help = (const struct Tile *)HelpData;' \
 		>> help.h
 
 tags: *.h *.c

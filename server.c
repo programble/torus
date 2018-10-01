@@ -41,26 +41,26 @@ static void tilesMap(void) {
 	int fd = open("torus.dat", O_CREAT | O_RDWR, 0644);
 	if (fd < 0) err(EX_CANTCREAT, "torus.dat");
 
-	int error = ftruncate(fd, TILES_SIZE);
+	int error = ftruncate(fd, TilesSize);
 	if (error) err(EX_IOERR, "ftruncate");
 
-	tiles = mmap(NULL, TILES_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+	tiles = mmap(NULL, TilesSize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 	if (tiles == MAP_FAILED) err(EX_OSERR, "mmap");
 
-	error = madvise(tiles, TILES_SIZE, MADV_RANDOM);
+	error = madvise(tiles, TilesSize, MADV_RANDOM);
 	if (error) err(EX_OSERR, "madvise");
 
 #ifdef MADV_NOCORE
-	error = madvise(tiles, TILES_SIZE, MADV_NOCORE);
+	error = madvise(tiles, TilesSize, MADV_NOCORE);
 	if (error) err(EX_OSERR, "madvise");
 #endif
 }
 
 static struct Tile *tileGet(uint32_t tileX, uint32_t tileY) {
-	struct Tile *tile = &tiles[tileY * TILE_ROWS + tileX];
+	struct Tile *tile = &tiles[tileY * TileRows + tileX];
 	if (!tile->meta.createTime) {
-		memset(tile->cells, ' ', CELLS_SIZE);
-		memset(tile->colors, COLOR_WHITE, CELLS_SIZE);
+		memset(tile->cells, ' ', CellsSize);
+		memset(tile->colors, ColorWhite, CellsSize);
 		tile->meta.createTime = time(NULL);
 	}
 	return tile;
@@ -97,10 +97,10 @@ static struct Client *clientAdd(int fd) {
 	if (!client) err(EX_OSERR, "malloc");
 
 	client->fd = fd;
-	client->tileX = TILE_INIT_X;
-	client->tileY = TILE_INIT_Y;
-	client->cellX = CELL_INIT_X;
-	client->cellY = CELL_INIT_Y;
+	client->tileX = TileInitX;
+	client->tileY = TileInitY;
+	client->cellX = CellInitX;
+	client->cellY = CellInitY;
 
 	client->prev = NULL;
 	if (clientHead) {
@@ -118,7 +118,7 @@ static bool clientSend(const struct Client *client, struct ServerMessage msg) {
 	ssize_t size = send(client->fd, &msg, sizeof(msg), 0);
 	if (size < 0) return false;
 
-	if (msg.type == SERVER_TILE) {
+	if (msg.type == ServerTile) {
 		struct Tile *tile = tileAccess(client->tileX, client->tileY);
 		size = send(client->fd, tile, sizeof(*tile), 0);
 		if (size < 0) return false;
@@ -142,10 +142,10 @@ static void clientRemove(struct Client *client) {
 	if (clientHead == client) clientHead = client->next;
 
 	struct ServerMessage msg = {
-		.type = SERVER_CURSOR,
+		.type = ServerCursor,
 		.cursor = {
 			.oldCellX = client->cellX, .oldCellY = client->cellY,
-			.newCellX = CURSOR_NONE,   .newCellY = CURSOR_NONE,
+			.newCellX = CursorNone,    .newCellY = CursorNone,
 		},
 	};
 	clientCast(client, msg);
@@ -156,8 +156,8 @@ static void clientRemove(struct Client *client) {
 
 static bool clientCursors(const struct Client *client) {
 	struct ServerMessage msg = {
-		.type = SERVER_CURSOR,
-		.cursor = { .oldCellX = CURSOR_NONE, .oldCellY = CURSOR_NONE },
+		.type = ServerCursor,
+		.cursor = { .oldCellX = CursorNone, .oldCellY = CursorNone },
 	};
 
 	for (struct Client *friend = clientHead; friend; friend = friend->next) {
@@ -174,30 +174,30 @@ static bool clientCursors(const struct Client *client) {
 
 static bool clientUpdate(struct Client *client, const struct Client *old) {
 	struct ServerMessage msg = {
-		.type = SERVER_MOVE,
+		.type = ServerMove,
 		.move = { .cellX = client->cellX, .cellY = client->cellY },
 	};
 	if (!clientSend(client, msg)) return false;
 
 	if (client->tileX != old->tileX || client->tileY != old->tileY) {
-		msg.type = SERVER_TILE;
+		msg.type = ServerTile;
 		if (!clientSend(client, msg)) return false;
 
 		if (!clientCursors(client)) return false;
 
 		msg = (struct ServerMessage) {
-			.type = SERVER_CURSOR,
+			.type = ServerCursor,
 			.cursor = {
-				.oldCellX = old->cellX,  .oldCellY = old->cellY,
-				.newCellX = CURSOR_NONE, .newCellY = CURSOR_NONE,
+				.oldCellX = old->cellX, .oldCellY = old->cellY,
+				.newCellX = CursorNone, .newCellY = CursorNone,
 			},
 		};
 		clientCast(old, msg);
 
 		msg = (struct ServerMessage) {
-			.type = SERVER_CURSOR,
+			.type = ServerCursor,
 			.cursor = {
-				.oldCellX = CURSOR_NONE,   .oldCellY = CURSOR_NONE,
+				.oldCellX = CursorNone,    .oldCellY = CursorNone,
 				.newCellX = client->cellX, .newCellY = client->cellY,
 			},
 		};
@@ -205,7 +205,7 @@ static bool clientUpdate(struct Client *client, const struct Client *old) {
 
 	} else {
 		msg = (struct ServerMessage) {
-			.type = SERVER_CURSOR,
+			.type = ServerCursor,
 			.cursor = {
 				.oldCellX = old->cellX,    .oldCellY = old->cellY,
 				.newCellX = client->cellX, .newCellY = client->cellY,
@@ -220,48 +220,48 @@ static bool clientUpdate(struct Client *client, const struct Client *old) {
 static bool clientMove(struct Client *client, int8_t dx, int8_t dy) {
 	struct Client old = *client;
 
-	if (dx > CELL_COLS - client->cellX) dx = CELL_COLS - client->cellX;
-	if (dx < -client->cellX - 1)        dx = -client->cellX - 1;
-	if (dy > CELL_ROWS - client->cellY) dy = CELL_ROWS - client->cellY;
-	if (dy < -client->cellY - 1)        dy = -client->cellY - 1;
+	if (dx > CellCols - client->cellX) dx = CellCols - client->cellX;
+	if (dx < -client->cellX - 1)       dx = -client->cellX - 1;
+	if (dy > CellRows - client->cellY) dy = CellRows - client->cellY;
+	if (dy < -client->cellY - 1)       dy = -client->cellY - 1;
 
 	client->cellX += dx;
 	client->cellY += dy;
 
-	if (client->cellX == CELL_COLS) {
+	if (client->cellX == CellCols) {
 		client->tileX++;
 		client->cellX = 0;
 	}
 	if (client->cellX == UINT8_MAX) {
 		client->tileX--;
-		client->cellX = CELL_COLS - 1;
+		client->cellX = CellCols - 1;
 	}
-	if (client->cellY == CELL_ROWS) {
+	if (client->cellY == CellRows) {
 		client->tileY++;
 		client->cellY = 0;
 	}
 	if (client->cellY == UINT8_MAX) {
 		client->tileY--;
-		client->cellY = CELL_ROWS - 1;
+		client->cellY = CellRows - 1;
 	}
 
-	if (client->tileX == TILE_COLS)  client->tileX = 0;
-	if (client->tileX == UINT32_MAX) client->tileX = TILE_COLS - 1;
-	if (client->tileY == TILE_ROWS)  client->tileY = 0;
-	if (client->tileY == UINT32_MAX) client->tileY = TILE_ROWS - 1;
+	if (client->tileX == TileCols)  client->tileX = 0;
+	if (client->tileX == UINT32_MAX) client->tileX = TileCols - 1;
+	if (client->tileY == TileRows)  client->tileY = 0;
+	if (client->tileY == UINT32_MAX) client->tileY = TileRows - 1;
 
-	assert(client->cellX < CELL_COLS);
-	assert(client->cellY < CELL_ROWS);
-	assert(client->tileX < TILE_COLS);
-	assert(client->tileY < TILE_ROWS);
+	assert(client->cellX < CellCols);
+	assert(client->cellY < CellRows);
+	assert(client->tileX < TileCols);
+	assert(client->tileY < TileRows);
 
 	return clientUpdate(client, &old);
 }
 
 static bool clientFlip(struct Client *client) {
 	struct Client old = *client;
-	client->tileX = (client->tileX + TILE_COLS / 2) % TILE_COLS;
-	client->tileY = (client->tileY + TILE_ROWS / 2) % TILE_ROWS;
+	client->tileX = (client->tileX + TileCols / 2) % TileCols;
+	client->tileY = (client->tileY + TileRows / 2) % TileRows;
 	return clientUpdate(client, &old);
 }
 
@@ -271,7 +271,7 @@ static bool clientPut(const struct Client *client, uint8_t color, uint8_t cell) 
 	tile->cells[client->cellY][client->cellX] = cell;
 
 	struct ServerMessage msg = {
-		.type = SERVER_PUT,
+		.type = ServerPut,
 		.put = {
 			.cellX = client->cellX,
 			.cellY = client->cellY,
@@ -285,8 +285,8 @@ static bool clientPut(const struct Client *client, uint8_t color, uint8_t cell) 
 }
 
 static bool clientMap(const struct Client *client) {
-	int32_t mapY = (int32_t)client->tileY - MAP_ROWS / 2;
-	int32_t mapX = (int32_t)client->tileX - MAP_COLS / 2;
+	int32_t mapY = (int32_t)client->tileY - MapRows / 2;
+	int32_t mapX = (int32_t)client->tileX - MapCols / 2;
 
 	time_t now = time(NULL);
 	struct Map map = {
@@ -300,11 +300,11 @@ static bool clientMap(const struct Client *client) {
 		},
 	};
 
-	for (int32_t y = 0; y < MAP_ROWS; ++y) {
-		for (int32_t x = 0; x < MAP_COLS; ++x) {
-			uint32_t tileY = ((mapY + y) % TILE_ROWS + TILE_ROWS) % TILE_ROWS;
-			uint32_t tileX = ((mapX + x) % TILE_COLS + TILE_COLS) % TILE_COLS;
-			struct Meta meta = tiles[tileY * TILE_ROWS + tileX].meta;
+	for (int32_t y = 0; y < MapRows; ++y) {
+		for (int32_t x = 0; x < MapCols; ++x) {
+			uint32_t tileY = ((mapY + y) % TileRows + TileRows) % TileRows;
+			uint32_t tileX = ((mapX + x) % TileCols + TileCols) % TileCols;
+			struct Meta meta = tiles[tileY * TileRows + tileX].meta;
 
 			if (meta.createTime) {
 				if (meta.createTime < map.min.createTime) {
@@ -347,7 +347,7 @@ static bool clientMap(const struct Client *client) {
 		}
 	}
 
-	struct ServerMessage msg = { .type = SERVER_MAP };
+	struct ServerMessage msg = { .type = ServerMap };
 	if (!clientSend(client, msg)) return false;
 	if (0 > send(client->fd, &map, sizeof(map), 0)) return false;
 	return true;
@@ -405,7 +405,7 @@ int main() {
 			nevents = kevent(kq, &event, 1, NULL, 0, NULL);
 			if (nevents < 0) err(EX_IOERR, "kevent");
 
-			struct ServerMessage msg = { .type = SERVER_TILE };
+			struct ServerMessage msg = { .type = ServerTile };
 			bool success = clientSend(client, msg)
 				&& clientMove(client, 0, 0)
 				&& clientCursors(client);
@@ -429,16 +429,16 @@ int main() {
 
 		bool success = false;
 		switch (msg.type) {
-			break; case CLIENT_MOVE: {
+			break; case ClientMove: {
 				success = clientMove(client, msg.move.dx, msg.move.dy);
 			}
-			break; case CLIENT_FLIP: {
+			break; case ClientFlip: {
 				success = clientFlip(client);
 			}
-			break; case CLIENT_PUT: {
+			break; case ClientPut: {
 				success = clientPut(client, msg.put.color, msg.put.cell);
 			}
-			break; case CLIENT_MAP: {
+			break; case ClientMap: {
 				success = clientMap(client);
 			}
 		}

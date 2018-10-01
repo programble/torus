@@ -43,12 +43,12 @@ static void curse(void) {
 		}
 	}
 
-	color_set(COLOR_WHITE, NULL);
-	mvhline(CELL_ROWS, 0, 0, CELL_COLS);
-	mvhline(CELL_ROWS * 2 + 1, 0, 0, CELL_COLS);
-	mvvline(0, CELL_COLS, 0, CELL_ROWS * 2 + 1);
-	mvaddch(CELL_ROWS, CELL_COLS, ACS_RTEE);
-	mvaddch(CELL_ROWS * 2 + 1, CELL_COLS, ACS_LRCORNER);
+	color_set(ColorWhite, NULL);
+	mvhline(CellRows, 0, 0, CellCols);
+	mvhline(CellRows * 2 + 1, 0, 0, CellCols);
+	mvvline(0, CellCols, 0, CellRows * 2 + 1);
+	mvaddch(CellRows, CellCols, ACS_RTEE);
+	mvaddch(CellRows * 2 + 1, CellCols, ACS_LRCORNER);
 	color_set(0, NULL);
 
 	cbreak();
@@ -59,7 +59,7 @@ static void curse(void) {
 
 static attr_t colorAttr(uint8_t color) {
 	if (COLORS >= 16) return A_NORMAL;
-	return (color & COLOR_BRIGHT) ? A_BOLD : A_NORMAL;
+	return (color & ColorBright) ? A_BOLD : A_NORMAL;
 }
 static short colorPair(uint8_t color) {
 	if (COLORS >= 16) return color;
@@ -67,8 +67,8 @@ static short colorPair(uint8_t color) {
 }
 
 static void drawTile(int offsetY, const struct Tile *tile) {
-	for (uint8_t cellY = 0; cellY < CELL_ROWS; ++cellY) {
-		for (uint8_t cellX = 0; cellX < CELL_COLS; ++cellX) {
+	for (uint8_t cellY = 0; cellY < CellRows; ++cellY) {
+		for (uint8_t cellX = 0; cellX < CellCols; ++cellX) {
 			uint8_t color = tile->colors[cellY][cellX];
 			uint8_t cell = tile->cells[cellY][cellX];
 
@@ -111,8 +111,8 @@ int main(int argc, char *argv[]) {
 
 		if (tileA.meta.modifyTime != tileB.meta.modifyTime) {
 			drawTile(0, &tileA);
-			drawTile(CELL_ROWS + 1, &tileB);
-			move(CELL_ROWS * 2 + 2, 0);
+			drawTile(CellRows + 1, &tileB);
+			move(CellRows * 2 + 2, 0);
 			refresh();
 
 			int c;

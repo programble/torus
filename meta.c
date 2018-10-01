@@ -30,8 +30,8 @@ int main() {
 
 		printf(
 			"%d,%d,%jd,%u,%jd,%u,%jd\n",
-			i % TILE_COLS,
-			i / TILE_COLS,
+			i % TileCols,
+			i / TileCols,
 			tile.meta.createTime,
 			tile.meta.modifyCount,
 			tile.meta.modifyTime,

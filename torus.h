@@ -25,25 +25,16 @@
 
 #define ARRAY_LEN(a) (sizeof(a) / sizeof((a)[0]))
 
-#undef COLOR_BLACK
-#undef COLOR_RED
-#undef COLOR_GREEN
-#undef COLOR_YELLOW
-#undef COLOR_BLUE
-#undef COLOR_MAGENTA
-#undef COLOR_CYAN
-#undef COLOR_WHITE
-
 enum {
-	COLOR_BLACK,
-	COLOR_RED,
-	COLOR_GREEN,
-	COLOR_YELLOW,
-	COLOR_BLUE,
-	COLOR_MAGENTA,
-	COLOR_CYAN,
-	COLOR_WHITE,
-	COLOR_BRIGHT,
+	ColorBlack,
+	ColorRed,
+	ColorGreen,
+	ColorYellow,
+	ColorBlue,
+	ColorMagenta,
+	ColorCyan,
+	ColorWhite,
+	ColorBright,
 };
 
 static const wchar_t CP437[256] = (
@@ -66,13 +57,13 @@ static const wchar_t CP437[256] = (
 );
 
 enum {
-	CELL_ROWS = 24,
-	CELL_COLS = 80,
+	CellRows = 24,
+	CellCols = 80,
 };
-static const size_t CELLS_SIZE = sizeof(uint8_t[CELL_ROWS][CELL_COLS]);
+static const size_t CellsSize = sizeof(uint8_t[CellRows][CellCols]);
 
-static const uint8_t CELL_INIT_X = CELL_COLS / 2;
-static const uint8_t CELL_INIT_Y = CELL_ROWS / 2;
+static const uint8_t CellInitX = CellCols / 2;
+static const uint8_t CellInitY = CellRows / 2;
 
 struct Meta {
 	time_t createTime;
@@ -83,40 +74,40 @@ struct Meta {
 };
 
 struct Tile {
-	alignas(4096) uint8_t cells[CELL_ROWS][CELL_COLS];
-	uint8_t colors[CELL_ROWS][CELL_COLS];
+	alignas(4096) uint8_t cells[CellRows][CellCols];
+	uint8_t colors[CellRows][CellCols];
 	struct Meta meta;
 };
 static_assert(4096 == sizeof(struct Tile), "struct Tile is page-sized");
 
 enum {
-	TILE_ROWS = 64,
-	TILE_COLS = 64,
+	TileRows = 64,
+	TileCols = 64,
 };
-static const size_t TILES_SIZE = sizeof(struct Tile[TILE_ROWS][TILE_COLS]);
+static const size_t TilesSize = sizeof(struct Tile[TileRows][TileCols]);
 
-static const uint32_t TILE_INIT_X = TILE_COLS / 2;
-static const uint32_t TILE_INIT_Y = TILE_ROWS / 2;
+static const uint32_t TileInitX = TileCols / 2;
+static const uint32_t TileInitY = TileRows / 2;
 
 enum {
-	MAP_ROWS = 7,
-	MAP_COLS = 7,
+	MapRows = 7,
+	MapCols = 7,
 };
 
 struct Map {
 	time_t now;
 	struct Meta min;
 	struct Meta max;
-	struct Meta meta[MAP_ROWS][MAP_COLS];
+	struct Meta meta[MapRows][MapCols];
 };
 
 struct ServerMessage {
 	enum {
-		SERVER_TILE,
-		SERVER_MOVE,
-		SERVER_PUT,
-		SERVER_CURSOR,
-		SERVER_MAP,
+		ServerTile,
+		ServerMove,
+		ServerPut,
+		ServerCursor,
+		ServerMap,
 	} type;
 	union {
 		struct {
@@ -138,14 +129,14 @@ struct ServerMessage {
 	};
 };
 
-static const uint8_t CURSOR_NONE = UINT8_MAX;
+static const uint8_t CursorNone = UINT8_MAX;
 
 struct ClientMessage {
 	enum {
-		CLIENT_MOVE,
-		CLIENT_FLIP,
-		CLIENT_PUT,
-		CLIENT_MAP,
+		ClientMove,
+		ClientFlip,
+		ClientPut,
+		ClientMap,
 	} type;
 	union {
 		struct {

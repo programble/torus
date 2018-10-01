@@ -42,8 +42,8 @@
 
 #define CTRL(ch) ((ch) ^ 0x40)
 enum {
-	ESC = 0x1B,
-	DEL = 0x7F,
+	Esc = 0x1B,
+	Del = 0x7F,
 };
 
 static uint32_t log2(uint32_t n) {
@@ -62,13 +62,13 @@ static void curse(void) {
 		fprintf(stderr, "If you think it should, check TERM.\n");
 		exit(EX_CONFIG);
 	}
-	if (LINES < CELL_ROWS || COLS < CELL_COLS) {
+	if (LINES < CellRows || COLS < CellCols) {
 		endwin();
 		fprintf(
 			stderr,
 			"Sorry, your terminal is too small!\n"
 			"It must be at least %ux%u characters.\n",
-			CELL_COLS, CELL_ROWS
+			CellCols, CellRows
 		);
 		exit(EX_CONFIG);
 	}
@@ -84,12 +84,12 @@ static void curse(void) {
 		}
 	}
 
-	color_set(COLOR_WHITE, NULL);
-	bool hline = (LINES > CELL_ROWS);
-	bool vline = (COLS > CELL_COLS);
-	if (hline) mvhline(CELL_ROWS, 0, 0, CELL_COLS);
-	if (vline) mvvline(0, CELL_COLS, 0, CELL_ROWS);
-	if (hline && vline) mvaddch(CELL_ROWS, CELL_COLS, ACS_LRCORNER);
+	color_set(ColorWhite, NULL);
+	bool hline = (LINES > CellRows);
+	bool vline = (COLS > CellCols);
+	if (hline) mvhline(CellRows, 0, 0, CellCols);
+	if (vline) mvvline(0, CellCols, 0, CellRows);
+	if (hline && vline) mvaddch(CellRows, CellCols, ACS_LRCORNER);
 	color_set(0, NULL);
 
 	cbreak();
@@ -100,7 +100,7 @@ static void curse(void) {
 
 static attr_t colorAttr(uint8_t color) {
 	if (COLORS >= 16) return A_NORMAL;
-	return (color & COLOR_BRIGHT) ? A_BOLD : A_NORMAL;
+	return (color & ColorBright) ? A_BOLD : A_NORMAL;
 }
 static short colorPair(uint8_t color) {
 	if (COLORS >= 16) return color;
@@ -120,8 +120,8 @@ static void drawCell(
 }
 
 static void drawTile(const struct Tile *tile) {
-	for (uint8_t cellY = 0; cellY < CELL_ROWS; ++cellY) {
-		for (uint8_t cellX = 0; cellX < CELL_COLS; ++cellX) {
+	for (uint8_t cellY = 0; cellY < CellRows; ++cellY) {
+		for (uint8_t cellX = 0; cellX < CellCols; ++cellX) {
 			drawCell(tile, cellX, cellY, A_NORMAL);
 		}
 	}
@@ -152,32 +152,32 @@ static void serverPut(struct ServerMessage msg) {
 }
 
 static void serverCursor(struct ServerMessage msg) {
-	if (msg.cursor.oldCellX != CURSOR_NONE) {
+	if (msg.cursor.oldCellX != CursorNone) {
 		drawCell(&tile, msg.cursor.oldCellX, msg.cursor.oldCellY, A_NORMAL);
 	}
-	if (msg.cursor.newCellX != CURSOR_NONE) {
+	if (msg.cursor.newCellX != CursorNone) {
 		drawCell(&tile, msg.cursor.newCellX, msg.cursor.newCellY, A_REVERSE);
 	}
 }
 
-static const uint8_t MAP_X = (CELL_COLS / 2) - (3 * MAP_COLS / 2);
-static const uint8_t MAP_Y = (CELL_ROWS / 2) - (MAP_ROWS / 2);
+static const uint8_t MapX = (CellCols / 2) - (3 * MapCols / 2);
+static const uint8_t MapY = (CellRows / 2) - (MapRows / 2);
 
-static const wchar_t MAP_CELLS[5] = L" ░▒▓█";
-static const uint8_t MAP_COLORS[] = {
-	COLOR_BLUE, COLOR_CYAN, COLOR_GREEN, COLOR_YELLOW, COLOR_RED,
+static const wchar_t MapCells[5] = L" ░▒▓█";
+static const uint8_t MapColors[] = {
+	ColorBlue, ColorCyan, ColorGreen, ColorYellow, ColorRed,
 };
 
 static void serverMap(void) {
-	int t = MAP_Y - 1;
-	int l = MAP_X - 1;
-	int b = MAP_Y + MAP_ROWS;
-	int r = MAP_X + 3 * MAP_COLS;
-	color_set(colorPair(COLOR_WHITE), NULL);
-	mvhline(t, MAP_X, ACS_HLINE, 3 * MAP_COLS);
-	mvhline(b, MAP_X, ACS_HLINE, 3 * MAP_COLS);
-	mvvline(MAP_Y, l, ACS_VLINE, MAP_ROWS);
-	mvvline(MAP_Y, r, ACS_VLINE, MAP_ROWS);
+	int t = MapY - 1;
+	int l = MapX - 1;
+	int b = MapY + MapRows;
+	int r = MapX + 3 * MapCols;
+	color_set(colorPair(ColorWhite), NULL);
+	mvhline(t, MapX, ACS_HLINE, 3 * MapCols);
+	mvhline(b, MapX, ACS_HLINE, 3 * MapCols);
+	mvvline(MapY, l, ACS_VLINE, MapRows);
+	mvvline(MapY, r, ACS_VLINE, MapRows);
 	mvaddch(t, l, ACS_ULCORNER);
 	mvaddch(t, r, ACS_URCORNER);
 	mvaddch(b, l, ACS_LLCORNER);
@@ -192,14 +192,14 @@ static void serverMap(void) {
 	if (0 == map.max.modifyCount) return;
 	if (0 == map.now - map.min.createTime) return;
 
-	for (uint8_t y = 0; y < MAP_ROWS; ++y) {
-		for (uint8_t x = 0; x < MAP_COLS; ++x) {
+	for (uint8_t y = 0; y < MapRows; ++y) {
+		for (uint8_t x = 0; x < MapCols; ++x) {
 			struct Meta meta = map.meta[y][x];
 
 			uint32_t count = 0;
 			if (meta.modifyCount && log2(map.max.modifyCount)) {
 				count = DIV_ROUND(
-					(ARRAY_LEN(MAP_CELLS) - 1) * log2(meta.modifyCount),
+					(ARRAY_LEN(MapCells) - 1) * log2(meta.modifyCount),
 					log2(map.max.modifyCount)
 				);
 			}
@@ -207,16 +207,16 @@ static void serverMap(void) {
 			if (meta.modifyTime) {
 				uint32_t modify = meta.modifyTime - map.min.createTime;
 				time = DIV_ROUND(
-					(ARRAY_LEN(MAP_COLORS) - 1) * modify,
+					(ARRAY_LEN(MapColors) - 1) * modify,
 					map.now - map.min.createTime
 				);
 			}
 
-			wchar_t cell = MAP_CELLS[count];
-			uint8_t color = MAP_COLORS[time];
+			wchar_t cell = MapCells[count];
+			uint8_t color = MapColors[time];
 			wchar_t tile[] = { cell, cell, cell, L'\0' };
 			attr_set(colorAttr(color), colorPair(color), NULL);
-			mvaddwstr(MAP_Y + y, MAP_X + 3 * x, tile);
+			mvaddwstr(MapY + y, MapX + 3 * x, tile);
 		}
 	}
 	attr_set(A_NORMAL, 0, NULL);
@@ -229,11 +229,11 @@ static void readMessage(void) {
 	if ((size_t)size < sizeof(msg)) errx(EX_PROTOCOL, "truncated message");
 
 	switch (msg.type) {
-		break; case SERVER_TILE:   serverTile();
-		break; case SERVER_MOVE:   serverMove(msg);
-		break; case SERVER_PUT:    serverPut(msg);
-		break; case SERVER_CURSOR: serverCursor(msg);
-		break; case SERVER_MAP:    serverMap();
+		break; case ServerTile:   serverTile();
+		break; case ServerMove:   serverMove(msg);
+		break; case ServerPut:    serverPut(msg);
+		break; case ServerCursor: serverCursor(msg);
+		break; case ServerMap:    serverMap();
 		break; default: errx(EX_PROTOCOL, "unknown message type %d", msg.type);
 	}
 	move(cellY, cellX);
@@ -246,46 +246,46 @@ static void clientMessage(struct ClientMessage msg) {
 
 static void clientMove(int8_t dx, int8_t dy) {
 	struct ClientMessage msg = {
-		.type = CLIENT_MOVE,
+		.type = ClientMove,
 		.move = { .dx = dx, .dy = dy },
 	};
 	clientMessage(msg);
 }
 
 static void clientFlip(void) {
-	struct ClientMessage msg = { .type = CLIENT_FLIP };
+	struct ClientMessage msg = { .type = ClientFlip };
 	clientMessage(msg);
 }
 
 static void clientPut(uint8_t color, uint8_t cell) {
 	struct ClientMessage msg = {
-		.type = CLIENT_PUT,
+		.type = ClientPut,
 		.put = { .color = color, .cell = cell },
 	};
 	clientMessage(msg);
 }
 
 static void clientMap(void) {
-	struct ClientMessage msg = { .type = CLIENT_MAP };
+	struct ClientMessage msg = { .type = ClientMap };
 	clientMessage(msg);
 }
 
 static struct {
 	enum {
-		MODE_NORMAL,
-		MODE_HELP,
-		MODE_MAP,
-		MODE_DIRECTION,
-		MODE_INSERT,
-		MODE_REPLACE,
-		MODE_DRAW,
-		MODE_LINE,
+		ModeNormal,
+		ModeHelp,
+		ModeMap,
+		ModeDirection,
+		ModeInsert,
+		ModeReplace,
+		ModeDraw,
+		ModeLine,
 	} mode;
 	uint8_t color;
 	uint8_t shift;
 	uint8_t draw;
 } input = {
-	.color = COLOR_WHITE,
+	.color = ColorWhite,
 };
 
 static struct {
@@ -302,36 +302,36 @@ static struct {
 static void modeNormal(void) {
 	curs_set(1);
 	move(cellY, cellX);
-	input.mode = MODE_NORMAL;
+	input.mode = ModeNormal;
 }
 static void modeHelp(void) {
 	curs_set(0);
-	drawTile(HELP);
-	input.mode = MODE_HELP;
+	drawTile(Help);
+	input.mode = ModeHelp;
 }
 static void modeMap(void) {
 	curs_set(0);
 	clientMap();
-	input.mode = MODE_MAP;
+	input.mode = ModeMap;
 }
 static void modeDirection(void) {
-	input.mode = MODE_DIRECTION;
+	input.mode = ModeDirection;
 }
 static void modeInsert(int8_t dx, int8_t dy) {
 	insert.dx = dx;
 	insert.dy = dy;
 	insert.len = 0;
-	input.mode = MODE_INSERT;
+	input.mode = ModeInsert;
 }
 static void modeReplace(void) {
-	input.mode = MODE_REPLACE;
+	input.mode = ModeReplace;
 }
 static void modeDraw(void) {
 	input.draw = 0;
-	input.mode = MODE_DRAW;
+	input.mode = ModeDraw;
 }
 static void modeLine(void) {
-	input.mode = MODE_LINE;
+	input.mode = ModeLine;
 }
 
 static void colorFg(uint8_t fg) {
@@ -353,8 +353,8 @@ static void cellCopy(void) {
 }
 
 static void cellSwap(int8_t dx, int8_t dy) {
-	if ((uint8_t)(cellX + dx) >= CELL_COLS) return;
-	if ((uint8_t)(cellY + dy) >= CELL_ROWS) return;
+	if ((uint8_t)(cellX + dx) >= CellCols) return;
+	if ((uint8_t)(cellY + dy) >= CellRows) return;
 
 	uint8_t aColor = tile.colors[cellY][cellX];
 	uint8_t aCell = tile.cells[cellY][cellX];
@@ -396,7 +396,7 @@ static void inputNormal(bool keyCode, wchar_t ch) {
 	switch (ch) {
 		break; case CTRL('L'): clearok(curscr, true);
 
-		break; case ESC: modeNormal(); input.shift = 0;
+		break; case Esc: modeNormal(); input.shift = 0;
 		break; case 'q': endwin(); exit(EX_OK);
 
 		break; case 'g': clientFlip();
@@ -409,25 +409,25 @@ static void inputNormal(bool keyCode, wchar_t ch) {
 		break; case 'b': clientMove(-1,  1);
 		break; case 'n': clientMove( 1,  1);
 
-		break; case '0': colorFg(COLOR_BLACK);
-		break; case '1': colorFg(COLOR_RED);
-		break; case '2': colorFg(COLOR_GREEN);
-		break; case '3': colorFg(COLOR_YELLOW);
-		break; case '4': colorFg(COLOR_BLUE);
-		break; case '5': colorFg(COLOR_MAGENTA);
-		break; case '6': colorFg(COLOR_CYAN);
-		break; case '7': colorFg(COLOR_WHITE);
+		break; case '0': colorFg(ColorBlack);
+		break; case '1': colorFg(ColorRed);
+		break; case '2': colorFg(ColorGreen);
+		break; case '3': colorFg(ColorYellow);
+		break; case '4': colorFg(ColorBlue);
+		break; case '5': colorFg(ColorMagenta);
+		break; case '6': colorFg(ColorCyan);
+		break; case '7': colorFg(ColorWhite);
 
-		break; case ')': colorBg(COLOR_BLACK);
-		break; case '!': colorBg(COLOR_RED);
-		break; case '@': colorBg(COLOR_GREEN);
-		break; case '#': colorBg(COLOR_YELLOW);
-		break; case '$': colorBg(COLOR_BLUE);
-		break; case '%': colorBg(COLOR_MAGENTA);
-		break; case '^': colorBg(COLOR_CYAN);
-		break; case '&': colorBg(COLOR_WHITE);
+		break; case ')': colorBg(ColorBlack);
+		break; case '!': colorBg(ColorRed);
+		break; case '@': colorBg(ColorGreen);
+		break; case '#': colorBg(ColorYellow);
+		break; case '$': colorBg(ColorBlue);
+		break; case '%': colorBg(ColorMagenta);
+		break; case '^': colorBg(ColorCyan);
+		break; case '&': colorBg(ColorWhite);
 
-		break; case '8': input.color ^= COLOR_BRIGHT;
+		break; case '8': input.color ^= ColorBright;
 		break; case '9': input.color = colorInvert(input.color);
 		break; case '`': input.color = tile.colors[cellY][cellX];
 
@@ -451,7 +451,7 @@ static void inputNormal(bool keyCode, wchar_t ch) {
 		}
 		break; case '*': {
 			clientPut(
-				tile.colors[cellY][cellX] ^ COLOR_BRIGHT,
+				tile.colors[cellY][cellX] ^ ColorBright,
 				tile.cells[cellY][cellX]
 			);
 			clientMove(1, 0);
@@ -499,7 +499,7 @@ static void inputMap(bool keyCode, wchar_t ch) {
 static void inputDirection(bool keyCode, wchar_t ch) {
 	if (keyCode) return;
 	switch (ch) {
-		break; case ESC: modeNormal();
+		break; case Esc: modeNormal();
 		break; case 'h': modeInsert(-1,  0);
 		break; case 'l': modeInsert( 1,  0);
 		break; case 'k': modeInsert( 0, -1);
@@ -517,11 +517,11 @@ static void inputInsert(bool keyCode, wchar_t ch) {
 		return;
 	}
 	switch (ch) {
-		break; case ESC: {
+		break; case Esc: {
 			clientMove(-insert.dx, -insert.dy);
 			modeNormal();
 		}
-		break; case '\b': case DEL: {
+		break; case '\b': case Del: {
 			clientMove(-insert.dx, -insert.dy);
 			clientPut(input.color, ' ');
 			insert.len--;
@@ -546,7 +546,7 @@ static void inputReplace(bool keyCode, wchar_t ch) {
 		inputNormal(keyCode, ch);
 		return;
 	}
-	if (ch != ESC) {
+	if (ch != Esc) {
 		uint8_t cell = inputCell(ch);
 		if (!cell) return;
 		clientPut(tile.colors[cellY][cellX], cell);
@@ -555,7 +555,7 @@ static void inputReplace(bool keyCode, wchar_t ch) {
 }
 
 static void inputDraw(bool keyCode, wchar_t ch) {
-	if (!keyCode && ch == ESC) {
+	if (!keyCode && ch == Esc) {
 		modeNormal();
 		return;
 	}
@@ -633,7 +633,7 @@ static void inputLine(bool keyCode, wchar_t ch) {
 		}
 	} else {
 		switch (ch) {
-			break; case ESC: case '.': modeNormal(); return;
+			break; case Esc: case '.': modeNormal(); return;
 			break; case 'h': dx = -1;
 			break; case 'l': dx =  1;
 			break; case 'k': dy = -1;
@@ -641,8 +641,8 @@ static void inputLine(bool keyCode, wchar_t ch) {
 			break; default: return;
 		}
 	}
-	if ((uint8_t)(cellX + dx) >= CELL_COLS) return;
-	if ((uint8_t)(cellY + dy) >= CELL_ROWS) return;
+	if ((uint8_t)(cellX + dx) >= CellCols) return;
+	if ((uint8_t)(cellY + dy) >= CellRows) return;
 
 	uint8_t leave = lineCell(tile.cells[cellY][cellX], dx, dy);
 	uint8_t enter = lineCell(tile.cells[cellY + dy][cellX + dx], -dx, -dy);
@@ -656,14 +656,14 @@ static void readInput(void) {
 	wint_t ch;
 	bool keyCode = (KEY_CODE_YES == get_wch(&ch));
 	switch (input.mode) {
-		break; case MODE_NORMAL:    inputNormal(keyCode, ch);
-		break; case MODE_HELP:      inputHelp(keyCode, ch);
-		break; case MODE_MAP:       inputMap(keyCode, ch);
-		break; case MODE_DIRECTION: inputDirection(keyCode, ch);
-		break; case MODE_INSERT:    inputInsert(keyCode, ch);
-		break; case MODE_REPLACE:   inputReplace(keyCode, ch);
-		break; case MODE_DRAW:      inputDraw(keyCode, ch);
-		break; case MODE_LINE:      inputLine(keyCode, ch);
+		break; case ModeNormal:    inputNormal(keyCode, ch);
+		break; case ModeHelp:      inputHelp(keyCode, ch);
+		break; case ModeMap:       inputMap(keyCode, ch);
+		break; case ModeDirection: inputDirection(keyCode, ch);
+		break; case ModeInsert:    inputInsert(keyCode, ch);
+		break; case ModeReplace:   inputReplace(keyCode, ch);
+		break; case ModeDraw:      inputDraw(keyCode, ch);
+		break; case ModeLine:      inputLine(keyCode, ch);
 	}
 }
 
@@ -671,7 +671,7 @@ int main(int argc, char *argv[]) {
 	int opt;
 	while (0 < (opt = getopt(argc, argv, "h"))) {
 		if (opt == 'h') {
-			fwrite(HELP_DATA, sizeof(HELP_DATA), 1, stdout);
+			fwrite(HelpData, sizeof(HelpData), 1, stdout);
 			return EX_OK;
 		} else {
 			return EX_USAGE;
