@@ -3,8 +3,8 @@ CHROOT_GROUP = $(CHROOT_USER)
 
 CFLAGS += -Wall -Wextra -Wpedantic
 LDFLAGS += -static
-LDLIBS = -lcursesw
-BINS = server client meta merge
+LDLIBS = -lcursesw -lz
+BINS = server client image meta merge
 OBJS = $(BINS:%=%.o)
 
 all: tags $(BINS)
@@ -43,3 +43,6 @@ chroot.tar: server client
 
 clean:
 	rm -f tags $(OBJS) $(BINS) chroot.tar
+
+README: torus.7
+	mandoc torus.7 | col -b -x > README
