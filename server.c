@@ -37,15 +37,16 @@
 
 static struct Tile *tiles;
 
-static void tilesMap(void) {
-	int fd = open("torus.dat", O_CREAT | O_RDWR, 0644);
-	if (fd < 0) err(EX_CANTCREAT, "torus.dat");
+static void tilesMap(const char *path) {
+	int fd = open(path, O_CREAT | O_RDWR, 0644);
+	if (fd < 0) err(EX_CANTCREAT, "%s", path);
 
 	int error = ftruncate(fd, TilesSize);
-	if (error) err(EX_IOERR, "ftruncate");
+	if (error) err(EX_IOERR, "%s", path);
 
 	tiles = mmap(NULL, TilesSize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 	if (tiles == MAP_FAILED) err(EX_OSERR, "mmap");
+	close(fd);
 
 	error = madvise(tiles, TilesSize, MADV_RANDOM);
 	if (error) err(EX_OSERR, "madvise");
@@ -353,23 +354,32 @@ static bool clientMap(const struct Client *client) {
 	return true;
 }
 
-int main() {
+int main(int argc, char *argv[]) {
 	int error;
 
-	tilesMap();
+	const char *dataPath = "torus.dat";
+	const char *sockPath = "torus.sock";
+	int opt;
+	while (0 < (opt = getopt(argc, argv, "d:s:"))) {
+		switch (opt) {
+			break; case 'd': dataPath = optarg;
+			break; case 's': sockPath = optarg;
+			break; default:  return EX_USAGE;
+		}
+	}
+
+	tilesMap(dataPath);
 
 	int server = socket(PF_LOCAL, SOCK_STREAM, 0);
 	if (server < 0) err(EX_OSERR, "socket");
 
-	error = unlink("torus.sock");
-	if (error && errno != ENOENT) err(EX_IOERR, "torus.sock");
+	error = unlink(sockPath);
+	if (error && errno != ENOENT) err(EX_IOERR, "%s", sockPath);
 
-	struct sockaddr_un addr = {
-		.sun_family = AF_LOCAL,
-		.sun_path = "torus.sock",
-	};
-	error = bind(server, (struct sockaddr *)&addr, sizeof(addr));
-	if (error) err(EX_CANTCREAT, "torus.sock");
+	struct sockaddr_un addr = { .sun_family = AF_LOCAL };
+	strlcpy(addr.sun_path, sockPath, sizeof(addr.sun_path));
+	error = bind(server, (struct sockaddr *)&addr, SUN_LEN(&addr));
+	if (error) err(EX_CANTCREAT, "%s", sockPath);
 
 	error = listen(server, 0);
 	if (error) err(EX_OSERR, "listen");
