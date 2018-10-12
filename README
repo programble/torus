@@ -1,22 +1,56 @@
-TORUS(7)           FreeBSD Miscellaneous Information Manual           TORUS(7)
+torus(1)                FreeBSD General Commands Manual               torus(1)
 
 NAME
-     torus – welcome to ascii.town!
+     server, client, image, meta, merge – collaborative ASCII art
+
+SYNOPSIS
+     server [-d data] [-s sock]
+     client [-h] [-s sock]
+     image [-d data] [-f font] [-x x] [-y y]
+     meta
+     merge data1 data2 data3
 
 DESCRIPTION
+     server maps a data file and listens on a UNIX-domain socket to
+     synchronize events between clients.
+
+     client connects to a UNIX-domain socket and presents a curses(3)
+     interface.
+
+     image renders a tile from a data file using a PSF2 font to PNG on
+     standard output.
+
+     meta extracts metadata from a data file on standard input to CSV on
+     standard ouput.  The CSV fields are tileX, tileY, createTime,
+     modifyCount, modifyTime, accessCount, accessTime.
+
+     merge interactively merges two data files data1 and data2 into data3.
+     Differing tiles are presented in a curses(3) interface and are chosen by
+     typing a or b.
+
+     The arguments are as follows:
+
+     -d data
+             Set path to data file.  The default path is torus.dat.
+
+     -f font
+             Set path to PSF2 font.  The default path is default8x16.psfu.
+
+     -h      Write help page data to standard output and exit.
+
+     -s sock
+             Set path to UNIX-domain socket.  The default path is torus.sock.
+
+     -x x -y y
+             Set tile coordinates to render.  The default coordinates are
+             32,32.
+
+IMPLEMENTATION NOTES
      This software targets FreeBSD and Darwin.
 
-     torus.h      Shared structures and message protocol.
-     server.c     Maps torus.dat and listens on torus.sock.
-     client.c     curses(3) client.
-     help.h       Tile data for help page.
-     image.c      Renders PNGs of tiles.
-     meta.c       Exports metadata from data file to CSV.
-     merge.c      Interactively merges two data files.
-     snapshot.sh  Snapshots data file, appropriate for cron.
+     help.h contains tile data for the help page and can be generated from the
+     first tile of torus.dat.
 
-     sshd_config       Anonymous login to chroot(8)'d client.
-     index.html        Friendly directions.
-     default8x16.psfu  Bitmap font from kbd: http://kbd-project.org.
+     default8x16.psfu is taken from kbd: http://kbd-project.org.
 
-Causal Agency                  October 10, 2018                  Causal Agency
+Causal Agency                  October 12, 2018                  Causal Agency

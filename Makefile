@@ -44,5 +44,5 @@ chroot.tar: server client
 clean:
 	rm -f tags $(OBJS) $(BINS) chroot.tar
 
-README: torus.7
-	mandoc torus.7 | col -b -x > README
+README: torus.1
+	mandoc torus.1 | col -b -x > README

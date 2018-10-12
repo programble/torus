@@ -1,0 +1,124 @@
+.Dd October 12, 2018
+.Dt torus 1
+.Os "Causal Agency"
+.
+.Sh NAME
+.Nm server ,
+.Nm client ,
+.Nm image ,
+.Nm meta ,
+.Nm merge
+.Nd collaborative ASCII art
+.
+.Sh SYNOPSIS
+.Nm server
+.Op Fl d Ar data
+.Op Fl s Ar sock
+.
+.Nm client
+.Op Fl h
+.Op Fl s Ar sock
+.
+.Nm image
+.Op Fl d Ar data
+.Op Fl f Ar font
+.Op Fl x Ar x
+.Op Fl y Ar y
+.
+.Nm meta
+.
+.Nm merge
+.Ar data1
+.Ar data2
+.Ar data3
+.
+.Sh DESCRIPTION
+.Nm server
+maps a data file
+and listens on a UNIX-domain socket
+to synchronize events between clients.
+.
+.Pp
+.Nm client
+connects to a UNIX-domain socket
+and presents a
+.Xr curses 3
+interface.
+.
+.Pp
+.Nm image
+renders a tile from a data file
+using a PSF2 font
+to PNG on standard output.
+.
+.Pp
+.Nm meta
+extracts metadata
+from a data file on standard input
+to CSV on standard ouput.
+The CSV fields are
+.Va tileX ,
+.Va tileY ,
+.Va createTime ,
+.Va modifyCount ,
+.Va modifyTime ,
+.Va accessCount ,
+.Va accessTime .
+.
+.Pp
+.Nm merge
+interactively merges two data files
+.Ar data1
+and
+.Ar data2
+into
+.Ar data3 .
+Differing tiles are presented in a
+.Xr curses 3
+interface
+and are chosen by typing
+.Ic a
+or
+.Ic b .
+.
+.Pp
+The arguments are as follows:
+.Bl -tag -width Ds
+.It Fl d Ar data
+Set path to data file.
+The default path is
+.Pa torus.dat .
+.
+.It Fl f Ar font
+Set path to PSF2 font.
+The default path is
+.Pa default8x16.psfu .
+.
+.It Fl h
+Write help page data to standard output and exit.
+.
+.It Fl s Ar sock
+Set path to UNIX-domain socket.
+The default path is
+.Pa torus.sock .
+.
+.It Fl x Ar x Fl y Ar y
+Set tile coordinates to render.
+The default coordinates are 32,32.
+.El
+.
+.Sh IMPLEMENTATION NOTES
+This software targets
+.Fx
+and Darwin.
+.
+.Pp
+.Pa help.h
+contains tile data for the help page
+and can be generated from the first tile of
+.Pa torus.dat .
+.
+.Pp
+.Pa default8x16.psfu
+is taken from
+.Lk http://kbd-project.org kbd .
