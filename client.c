@@ -26,6 +26,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <sysexits.h>
@@ -668,13 +669,16 @@ static void readInput(void) {
 }
 
 int main(int argc, char *argv[]) {
+	const char *sockPath = "torus.sock";
 	int opt;
-	while (0 < (opt = getopt(argc, argv, "h"))) {
-		if (opt == 'h') {
-			fwrite(HelpData, sizeof(HelpData), 1, stdout);
-			return EX_OK;
-		} else {
-			return EX_USAGE;
+	while (0 < (opt = getopt(argc, argv, "hs:"))) {
+		switch (opt) {
+			break; case 'h': {
+				fwrite(HelpData, sizeof(HelpData), 1, stdout);
+				return EX_OK;
+			}
+			break; case 's': sockPath = optarg;
+			break; default:  return EX_USAGE;
 		}
 	}
 
@@ -685,12 +689,10 @@ int main(int argc, char *argv[]) {
 	client = socket(PF_LOCAL, SOCK_STREAM, 0);
 	if (client < 0) err(EX_OSERR, "socket");
 
-	struct sockaddr_un addr = {
-		.sun_family = AF_LOCAL,
-		.sun_path = "torus.sock",
-	};
-	int error = connect(client, (struct sockaddr *)&addr, sizeof(addr));
-	if (error) err(EX_NOINPUT, "torus.sock");
+	struct sockaddr_un addr = { .sun_family = AF_LOCAL };
+	strlcpy(addr.sun_path, sockPath, sizeof(addr.sun_path));
+	int error = connect(client, (struct sockaddr *)&addr, SUN_LEN(&addr));
+	if (error) err(EX_NOINPUT, "%s", sockPath);
 
 	struct pollfd fds[2] = {
 		{ .fd = STDIN_FILENO, .events = POLLIN },
