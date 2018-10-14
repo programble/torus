@@ -3,7 +3,7 @@ CHROOT_GROUP = $(CHROOT_USER)
 
 CFLAGS += -Wall -Wextra -Wpedantic
 LDFLAGS += -static
-LDLIBS = -lcursesw -lz
+LDLIBS = -lcursesw -lutil -lz
 BINS = server client image meta merge
 OBJS = $(BINS:%=%.o)
 

@@ -19,6 +19,7 @@
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <libutil.h>
 #include <signal.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -359,13 +360,21 @@ int main(int argc, char *argv[]) {
 
 	const char *dataPath = "torus.dat";
 	const char *sockPath = "torus.sock";
+	const char *pidPath = NULL;
 	int opt;
-	while (0 < (opt = getopt(argc, argv, "d:s:"))) {
+	while (0 < (opt = getopt(argc, argv, "d:p:s:"))) {
 		switch (opt) {
 			break; case 'd': dataPath = optarg;
+			break; case 'p': pidPath = optarg;
 			break; case 's': sockPath = optarg;
 			break; default:  return EX_USAGE;
 		}
+	}
+
+	struct pidfh *pid = NULL;
+	if (pidPath) {
+		pid = pidfile_open(pidPath, 0600, NULL);
+		if (!pid) err(EX_CANTCREAT, "%s", pidPath);
 	}
 
 	tilesMap(dataPath);
@@ -380,6 +389,12 @@ int main(int argc, char *argv[]) {
 	strlcpy(addr.sun_path, sockPath, sizeof(addr.sun_path));
 	error = bind(server, (struct sockaddr *)&addr, SUN_LEN(&addr));
 	if (error) err(EX_CANTCREAT, "%s", sockPath);
+
+	if (pid) {
+		error = daemon(0, 0);
+		if (error) err(EX_OSERR, "daemon");
+		pidfile_write(pid);
+	}
 
 	error = listen(server, 0);
 	if (error) err(EX_OSERR, "listen");

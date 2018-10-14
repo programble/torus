@@ -13,6 +13,7 @@
 .Sh SYNOPSIS
 .Nm server
 .Op Fl d Ar data
+.Op Fl p Ar pidfile
 .Op Fl s Ar sock
 .
 .Nm client
@@ -96,6 +97,10 @@ The default path is
 .
 .It Fl h
 Write help page data to standard output and exit.
+.
+.It Fl p Ar pidfile
+Daemonize and write PID to
+.Ar pidfile .
 .
 .It Fl s Ar sock
 Set path to UNIX-domain socket.

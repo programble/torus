@@ -4,7 +4,7 @@ NAME
      server, client, image, meta, merge – collaborative ASCII art
 
 SYNOPSIS
-     server [-d data] [-s sock]
+     server [-d data] [-p pidfile] [-s sock]
      client [-h] [-s sock]
      image [-d data] [-f font] [-x x] [-y y]
      meta
@@ -37,6 +37,9 @@ DESCRIPTION
              Set path to PSF2 font.  The default path is default8x16.psfu.
 
      -h      Write help page data to standard output and exit.
+
+     -p pidfile
+             Daemonize and write PID to pidfile.
 
      -s sock
              Set path to UNIX-domain socket.  The default path is torus.sock.
