@@ -39,7 +39,7 @@ DESCRIPTION
      -h      Write help page data to standard output and exit.
 
      -p pidfile
-             Daemonize and write PID to pidfile.
+             Daemonize and write PID to pidfile.  Only available on FreeBSD.
 
      -s sock
              Set path to UNIX-domain socket.  The default path is torus.sock.

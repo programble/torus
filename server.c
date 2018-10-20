@@ -19,7 +19,6 @@
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <libutil.h>
 #include <signal.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -33,6 +32,10 @@
 #include <sysexits.h>
 #include <time.h>
 #include <unistd.h>
+
+#ifdef __FreeBSD__
+#include <libutil.h>
+#endif
 
 #include "torus.h"
 
@@ -371,11 +374,13 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
+#ifdef __FreeBSD__
 	struct pidfh *pid = NULL;
 	if (pidPath) {
 		pid = pidfile_open(pidPath, 0600, NULL);
 		if (!pid) err(EX_CANTCREAT, "%s", pidPath);
 	}
+#endif
 
 	tilesMap(dataPath);
 
@@ -390,11 +395,13 @@ int main(int argc, char *argv[]) {
 	error = bind(server, (struct sockaddr *)&addr, SUN_LEN(&addr));
 	if (error) err(EX_CANTCREAT, "%s", sockPath);
 
+#ifdef __FreeBSD__
 	if (pid) {
 		error = daemon(0, 0);
 		if (error) err(EX_OSERR, "daemon");
 		pidfile_write(pid);
 	}
+#endif
 
 	error = listen(server, 0);
 	if (error) err(EX_OSERR, "listen");
