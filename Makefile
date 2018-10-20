@@ -49,3 +49,7 @@ clean:
 
 README: torus.1
 	mandoc torus.1 | col -b -x > README
+
+install: chroot.tar rc.torus
+	tar -x -f chroot.tar -C /home/$(CHROOT_USER)
+	install rc.torus /usr/local/etc/rc.d/torus
