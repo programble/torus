@@ -1,0 +1,33 @@
+#!/bin/sh
+
+# PROVIDE: torus
+# REQUIRE: LOGIN
+# KEYWORD: shutdown
+
+. /etc/rc.subr
+
+name=torus
+rcvar=torus_enable
+load_rc_config ${name}
+
+: ${torus_enable:=NO}
+: ${torus_user=torus}
+: ${torus_group=${torus_user}}
+: ${torus_user:+${torus_chroot=/home/${torus_user}}}
+: ${torus_user:+${torus_data_path=/home/${torus_user}/torus.dat}}
+: ${torus_user:+${torus_sock_path=/home/${torus_user}/torus.sock}}
+torus_flags="\
+	${torus_data_path:+-d ${torus_data_path}} \
+	${torus_sock_path:+-s ${torus_sock_path}} \
+	${torus_flags}"
+
+torus_run=/var/run/${name}
+torus_pid=${torus_run}/${name}.pid
+
+required_dirs=${torus_chroot}${torus_run}
+pidfile=${torus_chroot}${torus_pid}
+
+command=/bin/server
+command_args="-p ${torus_pid}"
+
+run_rc_command "$1"
