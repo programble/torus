@@ -29,11 +29,11 @@ tags: *.h *.c
 chroot.tar: server client
 	mkdir -p root
 	install -d -o root -g wheel \
-	    root/bin \
-	    root/home \
-	    root/usr \
-	    root/usr/share \
-	    root/usr/share/misc \
+		root/bin \
+		root/home \
+		root/usr \
+		root/usr/share \
+		root/usr/share/misc \
 		root/var \
 		root/var/run
 	install -d -o $(CHROOT_USER) -g $(CHROOT_GROUP) root/home/$(CHROOT_USER)
