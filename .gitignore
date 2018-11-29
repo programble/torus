@@ -1,6 +1,7 @@
 *.o
 chroot.tar
 client
+config.mk
 image
 merge
 meta

@@ -14,7 +14,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <arpa/inet.h>
 #include <err.h>
 #include <fcntl.h>
 #include <stdint.h>
@@ -25,8 +24,8 @@
 #include <sys/stat.h>
 #include <sysexits.h>
 #include <unistd.h>
-#include <zlib.h>
 
+#include "png.h"
 #include "torus.h"
 
 static const uint8_t Palette[16][3] = {
@@ -106,40 +105,15 @@ static void tilesMap(const char *path) {
 	if (error) err(EX_OSERR, "madvise");
 }
 
-static uint32_t crc;
-static void pngWrite(const void *ptr, size_t size) {
-	fwrite(ptr, size, 1, stdout);
-	if (ferror(stdout)) err(EX_IOERR, "(stdout)");
-	crc = crc32(crc, ptr, size);
-}
-static void pngInt(uint32_t host) {
-	uint32_t net = htonl(host);
-	pngWrite(&net, 4);
-}
-static void pngChunk(char type[static 4], uint32_t size) {
-	pngInt(size);
-	crc = crc32(0, Z_NULL, 0);
-	pngWrite(type, 4);
-}
-
 static void render(uint32_t tileX, uint32_t tileY) {
 	uint32_t width = CellCols * font.glyph.width;
 	uint32_t height = CellRows * font.glyph.height;
 
-	pngWrite("\x89PNG\r\n\x1A\n", 8);
-
-	pngChunk("IHDR", 13);
-	pngInt(width);
-	pngInt(height);
-	pngWrite("\x08\x03\x00\x00\x00", 5);
-	pngInt(crc);
-
-	pngChunk("PLTE", sizeof(Palette));
-	pngWrite(Palette, sizeof(Palette));
-	pngInt(crc);
+	pngHead(stdout, width, height, 8, PNGIndexed);
+	pngPalette(stdout, (uint8_t *)Palette, sizeof(Palette));
 
 	uint8_t data[height][1 + width];
-	memset(data, 0, sizeof(data));
+	memset(data, PNGNone, sizeof(data));
 
 	uint32_t widthBytes = (font.glyph.width + 7) / 8;
 	uint8_t (*bits)[font.glyph.len][font.glyph.height][widthBytes];
@@ -163,17 +137,8 @@ static void render(uint32_t tileX, uint32_t tileY) {
 		}
 	}
 
-	uLong size = compressBound(sizeof(data));
-	uint8_t deflate[size];
-	int error = compress(deflate, &size, (Byte *)data, sizeof(data));
-	if (error != Z_OK) errx(EX_SOFTWARE, "compress: %d", error);
-
-	pngChunk("IDAT", size);
-	pngWrite(deflate, size);
-	pngInt(crc);
-
-	pngChunk("IEND", 0);
-	pngInt(crc);
+	pngData(stdout, (uint8_t *)data, sizeof(data));
+	pngTail(stdout);
 }
 
 int main(int argc, char *argv[]) {
