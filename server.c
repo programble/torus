@@ -35,6 +35,7 @@
 
 #ifdef __FreeBSD__
 #include <libutil.h>
+#include <sys/capsicum.h>
 #endif
 
 #include "torus.h"
@@ -396,6 +397,9 @@ int main(int argc, char *argv[]) {
 	if (error) err(EX_CANTCREAT, "%s", sockPath);
 
 #ifdef __FreeBSD__
+	error = cap_enter();
+	if (error) err(EX_OSERR, "cap_enter");
+
 	if (pid) {
 		error = daemon(0, 0);
 		if (error) err(EX_OSERR, "daemon");

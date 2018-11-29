@@ -33,6 +33,10 @@
 #include <unistd.h>
 #include <wchar.h>
 
+#ifdef __FreeBSD__
+#include <sys/capsicum.h>
+#endif
+
 #include "torus.h"
 #include "help.h"
 
@@ -693,6 +697,11 @@ int main(int argc, char *argv[]) {
 	strlcpy(addr.sun_path, sockPath, sizeof(addr.sun_path));
 	int error = connect(client, (struct sockaddr *)&addr, SUN_LEN(&addr));
 	if (error) err(EX_NOINPUT, "%s", sockPath);
+
+#ifdef __FreeBSD__
+	error = cap_enter();
+	if (error) err(EX_OSERR, "cap_enter");
+#endif
 
 	struct pollfd fds[2] = {
 		{ .fd = STDIN_FILENO, .events = POLLIN },
