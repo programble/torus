@@ -44,7 +44,7 @@ install: chroot.tar rc.torus
 	install rc.torus /usr/local/etc/rc.d/torus
 
 clean:
-	rm -f $(OBJS) $(BINS) tags root chroot.tar
+	rm -fr $(OBJS) $(BINS) tags root chroot.tar
 
 help.h:
 	head -c 4096 torus.dat \
