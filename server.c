@@ -312,7 +312,7 @@ static bool clientMap(const struct Client *client) {
 			uint32_t tileX = ((mapX + x) % TileCols + TileCols) % TileCols;
 			struct Meta meta = tileMeta(&tiles[tileY * TileRows + tileX]);
 
-			if (meta.createTime) {
+			if (meta.createTime > 1) {
 				if (meta.createTime < map.min.createTime) {
 					map.min.createTime = meta.createTime;
 				}
