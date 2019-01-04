@@ -257,11 +257,6 @@ static void clientMove(int8_t dx, int8_t dy) {
 	clientMessage(msg);
 }
 
-static void clientFlip(void) {
-	struct ClientMessage msg = { .type = ClientFlip };
-	clientMessage(msg);
-}
-
 static void clientPut(uint8_t color, uint8_t cell) {
 	struct ClientMessage msg = {
 		.type = ClientPut,
@@ -404,7 +399,6 @@ static void inputNormal(bool keyCode, wchar_t ch) {
 		break; case Esc: modeNormal(); input.shift = 0;
 		break; case 'q': endwin(); exit(EX_OK);
 
-		break; case 'g': clientFlip();
 		break; case 'h': clientMove(-1,  0);
 		break; case 'l': clientMove( 1,  0);
 		break; case 'k': clientMove( 0, -1);
