@@ -220,6 +220,7 @@ static void serverMap(void) {
 			wchar_t cell = MapCells[count];
 			uint8_t color = MapColors[time];
 			wchar_t tile[] = { cell, cell, cell, L'\0' };
+			if (y == MapRows / 2 && x == MapCols / 2) tile[1] = L'⌂';
 			attr_set(colorAttr(color), colorPair(color), NULL);
 			mvaddwstr(MapY + y, MapX + 3 * x, tile);
 		}
