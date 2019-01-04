@@ -490,7 +490,7 @@ static void inputNormal(bool keyCode, wchar_t ch) {
 static void inputHelp(bool keyCode, wchar_t ch) {
 	(void)keyCode;
 	(void)ch;
-	if (tile.meta.createTime) drawTile(&tile);
+	if (tileMeta(&tile).createTime) drawTile(&tile);
 	modeNormal();
 }
 

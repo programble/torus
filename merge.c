@@ -105,11 +105,14 @@ int main(int argc, char *argv[]) {
 		if (!countA && !countB) break;
 		if (!countA || !countB) errx(EX_DATAERR, "different size inputs");
 
-		const struct Tile *tileC = (tileA.meta.accessTime > tileB.meta.accessTime)
+		struct Meta metaA = tileMeta(&tileA);
+		struct Meta metaB = tileMeta(&tileB);
+
+		const struct Tile *tileC = (metaA.accessTime > metaB.accessTime)
 			? &tileA
 			: &tileB;
 
-		if (tileA.meta.modifyTime != tileB.meta.modifyTime) {
+		if (metaA.modifyTime != metaB.modifyTime) {
 			drawTile(0, &tileA);
 			drawTile(CellRows + 1, &tileB);
 			move(CellRows * 2 + 2, 0);

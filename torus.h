@@ -57,7 +57,7 @@ static const wchar_t CP437[256] = (
 );
 
 enum {
-	CellRows = 24,
+	CellRows = 25,
 	CellCols = 80,
 };
 static const size_t CellsSize = sizeof(uint8_t[CellRows][CellCols]);
@@ -74,24 +74,39 @@ struct Meta {
 };
 
 struct Tile {
-	alignas(4096) uint8_t cells[CellRows][CellCols];
-	uint8_t colors[CellRows][CellCols];
-	struct Meta meta;
+	alignas(4096)
+	time_t createTime;
+	time_t modifyTime;
+	alignas(16) uint8_t cells[CellRows][CellCols];
+	alignas(16) uint8_t colors[CellRows][CellCols];
+	uint32_t modifyCount;
+	uint32_t accessCount;
+	time_t accessTime;
 };
 static_assert(4096 == sizeof(struct Tile), "struct Tile is page-sized");
 
+static inline struct Meta tileMeta(const struct Tile *tile) {
+	return (struct Meta) {
+		.createTime = tile->createTime,
+		.modifyTime = tile->modifyTime,
+		.accessTime = tile->accessTime,
+		.modifyCount = tile->modifyCount,
+		.accessCount = tile->accessCount,
+	};
+}
+
 enum {
-	TileRows = 64,
-	TileCols = 64,
+	TileRows = 512,
+	TileCols = 512,
 };
 static const size_t TilesSize = sizeof(struct Tile[TileRows][TileCols]);
 
-static const uint32_t TileInitX = TileCols / 2;
-static const uint32_t TileInitY = TileRows / 2;
+static const uint32_t TileInitX = 0;
+static const uint32_t TileInitY = 0;
 
 enum {
-	MapRows = 7,
-	MapCols = 7,
+	MapRows = 11,
+	MapCols = 11,
 };
 
 struct Map {
