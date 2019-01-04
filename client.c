@@ -282,10 +282,12 @@ static struct {
 		ModeDraw,
 		ModeLine,
 	} mode;
+	int8_t delta;
 	uint8_t color;
 	uint8_t shift;
 	uint8_t draw;
 } input = {
+	.delta = 1,
 	.color = ColorWhite,
 };
 
@@ -380,10 +382,10 @@ static uint8_t inputCell(wchar_t ch) {
 static void inputNormal(bool keyCode, wchar_t ch) {
 	if (keyCode) {
 		switch (ch) {
-			break; case KEY_LEFT:  clientMove(-1,  0);
-			break; case KEY_RIGHT: clientMove( 1,  0);
-			break; case KEY_UP:    clientMove( 0, -1);
-			break; case KEY_DOWN:  clientMove( 0,  1);
+			break; case KEY_LEFT:  clientMove(-input.delta,  0);
+			break; case KEY_RIGHT: clientMove( input.delta,  0);
+			break; case KEY_UP:    clientMove( 0, -input.delta);
+			break; case KEY_DOWN:  clientMove( 0,  input.delta);
 
 			break; case KEY_F(1): input.shift = 0x00;
 			break; case KEY_F(2): input.shift = 0xC0;
@@ -400,14 +402,16 @@ static void inputNormal(bool keyCode, wchar_t ch) {
 		break; case Esc: modeNormal(); input.shift = 0;
 		break; case 'q': endwin(); exit(EX_OK);
 
-		break; case 'h': clientMove(-1,  0);
-		break; case 'l': clientMove( 1,  0);
-		break; case 'k': clientMove( 0, -1);
-		break; case 'j': clientMove( 0,  1);
-		break; case 'y': clientMove(-1, -1);
-		break; case 'u': clientMove( 1, -1);
-		break; case 'b': clientMove(-1,  1);
-		break; case 'n': clientMove( 1,  1);
+		break; case '\\': input.delta = (input.delta == 1 ? 4 : 1);
+
+		break; case 'h': clientMove(-input.delta,  0);
+		break; case 'l': clientMove( input.delta,  0);
+		break; case 'k': clientMove( 0, -input.delta);
+		break; case 'j': clientMove( 0,  input.delta);
+		break; case 'y': clientMove(-input.delta, -input.delta);
+		break; case 'u': clientMove( input.delta, -input.delta);
+		break; case 'b': clientMove(-input.delta,  input.delta);
+		break; case 'n': clientMove( input.delta,  input.delta);
 
 		break; case '0': colorFg(ColorBlack);
 		break; case '1': colorFg(ColorRed);
