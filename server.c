@@ -359,6 +359,16 @@ static bool clientMap(const struct Client *client) {
 	return true;
 }
 
+static bool clientTele(struct Client *client, uint8_t port) {
+	if (port >= ARRAY_LEN(Ports)) return false;
+	struct Client old = *client;
+	client->tileX = Ports[port].tileX;
+	client->tileY = Ports[port].tileY;
+	client->cellX = CellInitX;
+	client->cellY = CellInitY;
+	return clientUpdate(client, &old);
+}
+
 int main(int argc, char *argv[]) {
 	int error;
 
@@ -476,6 +486,9 @@ int main(int argc, char *argv[]) {
 			}
 			break; case ClientMap: {
 				success = clientMap(client);
+			}
+			break; case ClientTele: {
+				success = clientTele(client, msg.port);
 			}
 		}
 		if (!success) clientRemove(client);

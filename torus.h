@@ -104,6 +104,17 @@ static const size_t TilesSize = sizeof(struct Tile[TileRows][TileCols]);
 static const uint32_t TileInitX = 0;
 static const uint32_t TileInitY = 0;
 
+static const struct {
+	uint32_t tileX;
+	uint32_t tileY;
+} Ports[] = {
+	{ TileInitX, TileInitY },
+	{ TileCols * 3 / 4, TileRows * 3 / 4 }, // NW
+	{ TileCols * 1 / 4, TileRows * 3 / 4 }, // NE
+	{ TileCols * 1 / 4, TileRows * 1 / 4 }, // SE
+	{ TileCols * 3 / 4, TileRows * 1 / 4 }, // SW
+};
+
 enum {
 	MapRows = 11,
 	MapCols = 11,
@@ -152,6 +163,7 @@ struct ClientMessage {
 		ClientFlip,
 		ClientPut,
 		ClientMap,
+		ClientTele,
 	} type;
 	union {
 		struct {
@@ -162,5 +174,6 @@ struct ClientMessage {
 			uint8_t color;
 			uint8_t cell;
 		} put;
+		uint8_t port;
 	};
 };

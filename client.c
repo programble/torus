@@ -271,6 +271,11 @@ static void clientMap(void) {
 	clientMessage(msg);
 }
 
+static void clientTele(uint8_t port) {
+	struct ClientMessage msg = { .type = ClientTele, .port = port };
+	clientMessage(msg);
+}
+
 static struct {
 	enum {
 		ModeNormal,
@@ -401,6 +406,8 @@ static void inputNormal(bool keyCode, wchar_t ch) {
 
 		break; case Esc: modeNormal(); input.shift = 0;
 		break; case 'q': endwin(); exit(EX_OK);
+
+		break; case 'Q': clientTele(input.color % ARRAY_LEN(Ports));
 
 		break; case '\\': input.delta = (input.delta == 1 ? 4 : 1);
 
