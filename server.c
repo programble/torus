@@ -64,25 +64,25 @@ static void tilesMap(const char *path) {
 
 static struct Tile *tileGet(uint32_t tileX, uint32_t tileY) {
 	struct Tile *tile = &tiles[tileY * TileRows + tileX];
-	if (!tile->meta.createTime) {
+	if (!tile->createTime) {
 		memset(tile->cells, ' ', CellsSize);
 		memset(tile->colors, ColorWhite, CellsSize);
-		tile->meta.createTime = time(NULL);
+		tile->createTime = time(NULL);
 	}
 	return tile;
 }
 
 static struct Tile *tileAccess(uint32_t tileX, uint32_t tileY) {
 	struct Tile *tile = tileGet(tileX, tileY);
-	tile->meta.accessTime = time(NULL);
-	tile->meta.accessCount++;
+	tile->accessTime = time(NULL);
+	tile->accessCount++;
 	return tile;
 }
 
 static struct Tile *tileModify(uint32_t tileX, uint32_t tileY) {
 	struct Tile *tile = tileGet(tileX, tileY);
-	tile->meta.modifyTime = time(NULL);
-	tile->meta.modifyCount++;
+	tile->modifyTime = time(NULL);
+	tile->modifyCount++;
 	return tile;
 }
 
@@ -310,9 +310,9 @@ static bool clientMap(const struct Client *client) {
 		for (int32_t x = 0; x < MapCols; ++x) {
 			uint32_t tileY = ((mapY + y) % TileRows + TileRows) % TileRows;
 			uint32_t tileX = ((mapX + x) % TileCols + TileCols) % TileCols;
-			struct Meta meta = tiles[tileY * TileRows + tileX].meta;
+			struct Meta meta = tileMeta(&tiles[tileY * TileRows + tileX]);
 
-			if (meta.createTime) {
+			if (meta.createTime > 1) {
 				if (meta.createTime < map.min.createTime) {
 					map.min.createTime = meta.createTime;
 				}
@@ -357,6 +357,16 @@ static bool clientMap(const struct Client *client) {
 	if (!clientSend(client, msg)) return false;
 	if (0 > send(client->fd, &map, sizeof(map), 0)) return false;
 	return true;
+}
+
+static bool clientTele(struct Client *client, uint8_t port) {
+	if (port >= ARRAY_LEN(Ports)) return false;
+	struct Client old = *client;
+	client->tileX = Ports[port].tileX;
+	client->tileY = Ports[port].tileY;
+	client->cellX = CellInitX;
+	client->cellY = CellInitY;
+	return clientUpdate(client, &old);
 }
 
 int main(int argc, char *argv[]) {
@@ -476,6 +486,9 @@ int main(int argc, char *argv[]) {
 			}
 			break; case ClientMap: {
 				success = clientMap(client);
+			}
+			break; case ClientTele: {
+				success = clientTele(client, msg.port);
 			}
 		}
 		if (!success) clientRemove(client);

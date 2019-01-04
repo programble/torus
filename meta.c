@@ -28,15 +28,16 @@ int main() {
 		if (ferror(stdin)) err(EX_IOERR, "(stdin)");
 		if (!count) return EX_OK;
 
+		struct Meta meta = tileMeta(&tile);
 		printf(
 			"%d,%d,%jd,%u,%jd,%u,%jd\n",
 			i % TileCols,
 			i / TileCols,
-			tile.meta.createTime,
-			tile.meta.modifyCount,
-			tile.meta.modifyTime,
-			tile.meta.accessCount,
-			tile.meta.accessTime
+			meta.createTime,
+			meta.modifyCount,
+			meta.modifyTime,
+			meta.accessCount,
+			meta.accessTime
 		);
 	}
 }

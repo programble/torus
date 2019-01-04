@@ -220,6 +220,7 @@ static void serverMap(void) {
 			wchar_t cell = MapCells[count];
 			uint8_t color = MapColors[time];
 			wchar_t tile[] = { cell, cell, cell, L'\0' };
+			if (y == MapRows / 2 && x == MapCols / 2) tile[1] = L'⌂';
 			attr_set(colorAttr(color), colorPair(color), NULL);
 			mvaddwstr(MapY + y, MapX + 3 * x, tile);
 		}
@@ -257,11 +258,6 @@ static void clientMove(int8_t dx, int8_t dy) {
 	clientMessage(msg);
 }
 
-static void clientFlip(void) {
-	struct ClientMessage msg = { .type = ClientFlip };
-	clientMessage(msg);
-}
-
 static void clientPut(uint8_t color, uint8_t cell) {
 	struct ClientMessage msg = {
 		.type = ClientPut,
@@ -272,6 +268,11 @@ static void clientPut(uint8_t color, uint8_t cell) {
 
 static void clientMap(void) {
 	struct ClientMessage msg = { .type = ClientMap };
+	clientMessage(msg);
+}
+
+static void clientTele(uint8_t port) {
+	struct ClientMessage msg = { .type = ClientTele, .port = port };
 	clientMessage(msg);
 }
 
@@ -286,10 +287,12 @@ static struct {
 		ModeDraw,
 		ModeLine,
 	} mode;
+	int8_t delta;
 	uint8_t color;
 	uint8_t shift;
 	uint8_t draw;
 } input = {
+	.delta = 1,
 	.color = ColorWhite,
 };
 
@@ -384,10 +387,10 @@ static uint8_t inputCell(wchar_t ch) {
 static void inputNormal(bool keyCode, wchar_t ch) {
 	if (keyCode) {
 		switch (ch) {
-			break; case KEY_LEFT:  clientMove(-1,  0);
-			break; case KEY_RIGHT: clientMove( 1,  0);
-			break; case KEY_UP:    clientMove( 0, -1);
-			break; case KEY_DOWN:  clientMove( 0,  1);
+			break; case KEY_LEFT:  clientMove(-input.delta,  0);
+			break; case KEY_RIGHT: clientMove( input.delta,  0);
+			break; case KEY_UP:    clientMove( 0, -input.delta);
+			break; case KEY_DOWN:  clientMove( 0,  input.delta);
 
 			break; case KEY_F(1): input.shift = 0x00;
 			break; case KEY_F(2): input.shift = 0xC0;
@@ -404,15 +407,18 @@ static void inputNormal(bool keyCode, wchar_t ch) {
 		break; case Esc: modeNormal(); input.shift = 0;
 		break; case 'q': endwin(); exit(EX_OK);
 
-		break; case 'g': clientFlip();
-		break; case 'h': clientMove(-1,  0);
-		break; case 'l': clientMove( 1,  0);
-		break; case 'k': clientMove( 0, -1);
-		break; case 'j': clientMove( 0,  1);
-		break; case 'y': clientMove(-1, -1);
-		break; case 'u': clientMove( 1, -1);
-		break; case 'b': clientMove(-1,  1);
-		break; case 'n': clientMove( 1,  1);
+		break; case 'Q': clientTele(input.color % ARRAY_LEN(Ports));
+
+		break; case '\\': input.delta = (input.delta == 1 ? 4 : 1);
+
+		break; case 'h': clientMove(-input.delta,  0);
+		break; case 'l': clientMove( input.delta,  0);
+		break; case 'k': clientMove( 0, -input.delta);
+		break; case 'j': clientMove( 0,  input.delta);
+		break; case 'y': clientMove(-input.delta, -input.delta);
+		break; case 'u': clientMove( input.delta, -input.delta);
+		break; case 'b': clientMove(-input.delta,  input.delta);
+		break; case 'n': clientMove( input.delta,  input.delta);
 
 		break; case '0': colorFg(ColorBlack);
 		break; case '1': colorFg(ColorRed);
@@ -490,7 +496,7 @@ static void inputNormal(bool keyCode, wchar_t ch) {
 static void inputHelp(bool keyCode, wchar_t ch) {
 	(void)keyCode;
 	(void)ch;
-	if (tile.meta.createTime) drawTile(&tile);
+	if (tileMeta(&tile).createTime) drawTile(&tile);
 	modeNormal();
 }
 
