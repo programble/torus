@@ -410,7 +410,21 @@ int main(int argc, char *argv[]) {
 	error = cap_enter();
 	if (error) err(EX_OSERR, "cap_enter");
 
+	cap_rights_t rights;
+	cap_rights_init(
+		&rights,
+		CAP_LISTEN, CAP_ACCEPT, CAP_EVENT,
+		CAP_READ, CAP_WRITE, CAP_SETSOCKOPT
+	);
+	error = cap_rights_limit(server, &rights);
+	if (error) err(EX_OSERR, "cap_rights_limit");
+
 	if (pid) {
+		cap_rights_init(&rights, CAP_PWRITE, CAP_FSTAT, CAP_FTRUNCATE);
+		error = cap_rights_limit(pidfile_fileno(pid), &rights);
+		if (error) err(EX_OSERR, "cap_rights_limit");
+
+		// FIXME: daemon(3) can't chdir or open /dev/null in capability mode.
 		error = daemon(0, 0);
 		if (error) err(EX_OSERR, "daemon");
 		pidfile_write(pid);

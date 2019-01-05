@@ -707,6 +707,11 @@ int main(int argc, char *argv[]) {
 #ifdef __FreeBSD__
 	error = cap_enter();
 	if (error) err(EX_OSERR, "cap_enter");
+
+	cap_rights_t rights;
+	cap_rights_init(&rights, CAP_READ, CAP_WRITE, CAP_EVENT);
+	error = cap_rights_limit(client, &rights);
+	if (error) err(EX_OSERR, "cap_rights_limit");
 #endif
 
 	struct pollfd fds[2] = {
