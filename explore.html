@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<title>Explore the Torus</title>
+<style>
+	body { text-align: center; }
+	table { margin: auto; }
+	button { font-size: 250%; }
+	img { image-rendering: pixelated; }
+</style>
+<img id="tile" src="tile.png">
+<table>
+	<tr>
+		<td rowspan="3"><button id="larr" type="button">&larr;</button></td>
+		<td><button id="uarr" type="button">&uarr;</button></td>
+		<td rowspan="3"><button id="rarr" type="button">&rarr;</button></td>
+	</tr>
+	<tr></tr>
+	<tr>
+		<td><button id="darr" type="button">&darr;</button</td>
+	</tr>
+</table>
+
+<script>
+	let tile = document.getElementById("tile");
+	let larr = document.getElementById("larr");
+	let darr = document.getElementById("darr");
+	let uarr = document.getElementById("uarr");
+	let rarr = document.getElementById("rarr");
+
+	let state = new URLSearchParams(document.location.hash.slice(1));
+
+	function setImage() {
+		let url = new URL(tile.src);
+		url.search = "?" + state.toString();
+		tile.src = url.toString();
+	}
+	setImage();
+
+	function move(dx, dy) {
+		state.set("x", +state.get("x") + dx);
+		state.set("y", +state.get("y") + dy);
+		history.pushState(state.toString(), "", "#" + state.toString());
+		setImage();
+	}
+	window.onpopstate = function(event) {
+		state = new URLSearchParams(event.state);
+		setImage();
+	}
+	
+	larr.onclick = () => move(-1,  0);
+	darr.onclick = () => move( 0,  1);
+	uarr.onclick = () => move( 0, -1);
+	rarr.onclick = () => move( 1,  0);
+	document.onkeydown = function(event) {
+		switch (event.key) {
+			case "h": case "ArrowLeft":  larr.onclick(); break;
+			case "j": case "ArrowDown":  darr.onclick(); break;
+			case "k": case "ArrowUp":    uarr.onclick(); break;
+			case "l": case "ArrowRight": rarr.onclick(); break;
+		}
+	}
+</script>
