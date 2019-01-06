@@ -195,14 +195,11 @@ static void worker(void) {
 
 		uint32_t tileX = TileInitX;
 		uint32_t tileY = TileInitY;
-
-		for (size_t i = 0; i < req.fieldsz; ++i) {
-			if (req.fields[i].state != KPAIR_VALID) continue;
-			if (req.fields[i].keypos == KeyX) {
-				tileX = (uint32_t)req.fields[i].parsed.i % TileCols;
-			} else if (req.fields[i].keypos == KeyY) {
-				tileY = (uint32_t)req.fields[i].parsed.i % TileRows;
-			}
+		if (req.fieldmap[KeyX]) {
+			tileX = (uint32_t)req.fieldmap[KeyX]->parsed.i % TileCols;
+		}
+		if (req.fieldmap[KeyY]) {
+			tileY = (uint32_t)req.fieldmap[KeyY]->parsed.i % TileRows;
 		}
 
 		error = khttp_head(
