@@ -21,6 +21,7 @@
 .Op Fl s Ar sock
 .
 .Nm image
+.Op Fl k
 .Op Fl d Ar data
 .Op Fl f Ar font
 .Op Fl x Ar x
@@ -51,6 +52,13 @@ interface.
 renders a tile from a data file
 using a PSF2 font
 to PNG on standard output.
+To build with
+.Xr kcgi 3
+support,
+copy
+.Pa kcgi.mk
+to
+.Pa config.mk .
 .
 .Pp
 .Nm meta
@@ -97,6 +105,10 @@ The default path is
 .
 .It Fl h
 Write help page data to standard output and exit.
+.
+.It Fl k
+Run a FastCGI worker for use with
+.Xr kfcgi 8 .
 .
 .It Fl p Ar pidfile
 Daemonize and write PID to

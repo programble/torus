@@ -6,7 +6,7 @@ NAME
 SYNOPSIS
      server [-d data] [-p pidfile] [-s sock]
      client [-h] [-s sock]
-     image [-d data] [-f font] [-x x] [-y y]
+     image [-k] [-d data] [-f font] [-x x] [-y y]
      meta
      merge data1 data2 data3
 
@@ -18,7 +18,8 @@ DESCRIPTION
      interface.
 
      image renders a tile from a data file using a PSF2 font to PNG on
-     standard output.
+     standard output.  To build with kcgi(3) support, copy kcgi.mk to
+     config.mk.
 
      meta extracts metadata from a data file on standard input to CSV on
      standard ouput.  The CSV fields are tileX, tileY, createTime,
@@ -37,6 +38,8 @@ DESCRIPTION
              Set path to PSF2 font.  The default path is default8x16.psfu.
 
      -h      Write help page data to standard output and exit.
+
+     -k      Run a FastCGI worker for use with kfcgi(8).
 
      -p pidfile
              Daemonize and write PID to pidfile.  Only available on FreeBSD.

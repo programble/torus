@@ -1,4 +1,4 @@
-/* Copyright (C) 2018  Curtis McEnroe <june@causal.agency>
+/* Copyright (C) 2018, 2019  C. McEnroe <june@causal.agency>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,6 +16,7 @@
 
 #include <err.h>
 #include <fcntl.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -24,6 +25,21 @@
 #include <sys/stat.h>
 #include <sysexits.h>
 #include <unistd.h>
+
+#ifdef __FreeBSD__
+#include <sys/capsicum.h>
+#endif
+
+#ifdef HAVE_KCGI
+#include <sys/types.h>
+#include <stdarg.h>
+#include <stdint.h>
+#include <kcgi.h>
+#endif
+
+// XXX: Include this after kcgi.h to avoid conflicts.
+// <https://github.com/kristapsdz/kcgi/pull/58>
+#include <stdnoreturn.h>
 
 #include "png.h"
 #include "torus.h"
@@ -105,12 +121,12 @@ static void tilesMap(const char *path) {
 	if (error) err(EX_OSERR, "madvise");
 }
 
-static void render(uint32_t tileX, uint32_t tileY) {
+static void render(FILE *stream, uint32_t tileX, uint32_t tileY) {
 	uint32_t width = CellCols * font.glyph.width;
 	uint32_t height = CellRows * font.glyph.height;
 
-	pngHead(stdout, width, height, 8, PNGIndexed);
-	pngPalette(stdout, (uint8_t *)Palette, sizeof(Palette));
+	pngHead(stream, width, height, 8, PNGIndexed);
+	pngPalette(stream, (uint8_t *)Palette, sizeof(Palette));
 
 	uint8_t data[height][1 + width];
 	memset(data, PNGNone, sizeof(data));
@@ -137,21 +153,96 @@ static void render(uint32_t tileX, uint32_t tileY) {
 		}
 	}
 
-	pngData(stdout, (uint8_t *)data, sizeof(data));
-	pngTail(stdout);
+	pngData(stream, (uint8_t *)data, sizeof(data));
+	pngTail(stream);
 }
 
+#ifdef HAVE_KCGI
+
+enum { KeyX, KeyY, KeysLen };
+static const struct kvalid Keys[KeysLen] = {
+	[KeyX] = { .name = "x", .valid = kvalid_int },
+	[KeyY] = { .name = "y", .valid = kvalid_int },
+};
+
+enum { PageIndex, PagesLen };
+static const char *Pages[PagesLen] = {
+	[PageIndex] = "index",
+};
+
+static noreturn void errkcgi(int eval, enum kcgi_err code, const char *str) {
+	errx(eval, "%s: %s", str, kcgi_strerror(code));
+}
+
+static int streamWrite(void *cookie, const char *buf, int len) {
+	struct kreq *req = cookie;
+	enum kcgi_err error = khttp_write(req, buf, (size_t)len);
+	if (error) errkcgi(EX_IOERR, error, "khttp_write");
+	return len;
+}
+
+static void worker(void) {
+	struct kfcgi *fcgi;
+	enum kcgi_err error = khttp_fcgi_init(
+		&fcgi, Keys, KeysLen, Pages, PagesLen, PageIndex
+	);
+	if (error) errkcgi(EX_CONFIG, error, "khttp_fcgi_init");
+
+	for (;;) {
+		struct kreq req;
+		error = khttp_fcgi_parse(fcgi, &req);
+		if (error) errkcgi(EX_DATAERR, error, "khttp_fcgi_parse");
+
+		uint32_t tileX = TileInitX;
+		uint32_t tileY = TileInitY;
+
+		for (size_t i = 0; i < req.fieldsz; ++i) {
+			if (req.fields[i].state != KPAIR_VALID) continue;
+			if (req.fields[i].keypos == KeyX) {
+				tileX = (uint32_t)req.fields[i].parsed.i % TileCols;
+			} else if (req.fields[i].keypos == KeyY) {
+				tileY = (uint32_t)req.fields[i].parsed.i % TileRows;
+			}
+		}
+
+		error = khttp_head(
+			&req, kresps[KRESP_STATUS], "%s", khttps[KHTTP_200]
+		);
+		if (error) errkcgi(EX_IOERR, error, "khttp_head");
+
+		error = khttp_head(
+			&req, kresps[KRESP_CONTENT_TYPE], "%s", kmimetypes[KMIME_IMAGE_PNG]
+		);
+		if (error) errkcgi(EX_IOERR, error, "khttp_head");
+
+		error = khttp_body(&req);
+		if (error) errkcgi(EX_IOERR, error, "khttp_body");
+
+		FILE *stream = fwopen(&req, streamWrite);
+		if (!stream) err(EX_OSERR, "fwopen");
+
+		render(stream, tileX, tileY);
+
+		fclose(stream);
+		khttp_free(&req);
+	}
+}
+
+#endif /* HAVE_KCGI */
+
 int main(int argc, char *argv[]) {
+	bool kcgi = false;
 	const char *fontPath = "default8x16.psfu";
 	const char *dataPath = "torus.dat";
 	uint32_t tileX = TileInitX;
 	uint32_t tileY = TileInitY;
 
 	int opt;
-	while (0 < (opt = getopt(argc, argv, "d:f:x:y:"))) {
+	while (0 < (opt = getopt(argc, argv, "d:f:kx:y:"))) {
 		switch (opt) {
 			break; case 'd': dataPath = optarg;
 			break; case 'f': fontPath = optarg;
+			break; case 'k': kcgi = true;
 			break; case 'x': tileX = strtoul(optarg, NULL, 0) % TileCols;
 			break; case 'y': tileY = strtoul(optarg, NULL, 0) % TileRows;
 			break; default:  return EX_USAGE;
@@ -161,7 +252,14 @@ int main(int argc, char *argv[]) {
 	fontLoad(fontPath);
 	tilesMap(dataPath);
 
-	render(tileX, tileY);
+#ifdef __FreeBSD__
+	int error = cap_enter();
+	if (error) err(EX_OSERR, "cap_enter");
+#endif
 
-	return EX_OK;
+#ifdef HAVE_KCGI
+	if (kcgi) worker();
+#endif
+
+	render(stdout, tileX, tileY);
 }
