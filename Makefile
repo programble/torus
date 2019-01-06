@@ -24,19 +24,21 @@ image.o: png.h
 tags: *.h *.c
 	ctags -w *.h *.c
 
-chroot.tar: client server
+chroot.tar: client image server
 	install -d -o root -g wheel \
 		root \
 		root/bin \
 		root/home \
 		root/usr/share/misc \
+		root/usr/share/torus \
 		root/var/run
 	install -d -o $(CHROOT_USER) -g $(CHROOT_GROUP) root/home/$(CHROOT_USER)
 	install -d -o $(CHROOT_USER) -g $(CHROOT_GROUP) root/var/run/torus
 	cp -af /usr/share/locale root/usr/share
 	cp -fp /usr/share/misc/termcap.db root/usr/share/misc
 	cp -fp /rescue/sh root/bin
-	install client server root/bin
+	install client image server root/bin
+	install -m 644 default8x16.psfu root/usr/share/torus
 	tar -cf chroot.tar -C root bin home usr var
 
 install: chroot.tar rc.torus
