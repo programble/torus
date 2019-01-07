@@ -64,14 +64,19 @@ Code is available from
 	let uarr = document.getElementById("uarr");
 	let rarr = document.getElementById("rarr");
 
-	let state = new URLSearchParams(document.location.hash.slice(1));
+	let state = new URLSearchParams();
 
 	function setImage() {
 		let url = new URL(tile.src);
 		url.search = "?" + state.toString();
 		tile.src = url.toString();
 	}
-	setImage();
+
+	window.onhashchange = function() {
+		state = new URLSearchParams(document.location.hash.slice(1));
+		setImage();
+	}
+	window.onhashchange();
 
 	function setState(x, y) {
 		state.set("x", x);
