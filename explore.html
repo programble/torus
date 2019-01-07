@@ -78,6 +78,7 @@ Code is available from
 	rarr.onclick = () => move( 1,  0);
 	document.onkeydown = function(event) {
 		switch (event.key) {
+			case "Q": case "Home":       home.onclick(); break;
 			case "h": case "ArrowLeft":  larr.onclick(); break;
 			case "j": case "ArrowDown":  darr.onclick(); break;
 			case "k": case "ArrowUp":    uarr.onclick(); break;
