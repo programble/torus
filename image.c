@@ -119,6 +119,11 @@ static void tilesMap(const char *path) {
 
 	error = madvise(tiles, TilesSize, MADV_RANDOM);
 	if (error) err(EX_OSERR, "madvise");
+
+#ifdef MADV_NOCORE
+	error = madvise(tiles, TilesSize, MADV_NOCORE);
+	if (error) err(EX_OSERR, "madvise");
+#endif
 }
 
 static void render(FILE *stream, uint32_t tileX, uint32_t tileY) {
