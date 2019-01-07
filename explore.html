@@ -3,28 +3,43 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
 	body {
+		color: white;
 		background-color: black;
 		text-align: center;
 	}
-	table { margin: auto; }
-	button { font-size: 250%; }
+	a { color: white; }
 	img {
 		max-width: 100%;
 		image-rendering: pixelated;
 	}
+	table { margin: auto; }
+	button.arr { font-size: 150%; }
 </style>
-<img id="tile" src="tile.png">
+<p>
+<a href="ssh://torus@ascii.town"><code>ssh torus@ascii.town</code></a>
+<p>
+<img id="tile" src="https://ascii.town/tile.png">
 <table>
 	<tr>
-		<td rowspan="3"><button id="larr" type="button">&larr;</button></td>
-		<td><button id="uarr" type="button">&uarr;</button></td>
-		<td rowspan="3"><button id="rarr" type="button">&rarr;</button></td>
+		<td rowspan="2">
+			<button id="larr" class="arr" type="button">&larr;</button>
+		</td>
+		<td><button id="uarr" class="arr" type="button">&uarr;</button></td>
+		<td rowspan="2">
+			<button id="rarr" class="arr" type="button">&rarr;</button>
+		</td>
 	</tr>
-	<tr></tr>
 	<tr>
-		<td><button id="darr" type="button">&darr;</button</td>
+		<td><button id="darr" class="arr" type="button">&darr;</button></td>
+	</tr>
+	<tr>
+		<td colspan="3"><button id="home" type="button">HOME</button></td>
 	</tr>
 </table>
+<p>
+This is AGPLv3 Free Software!
+Code is available from
+<a href="https://code.causal.agency/june/torus">Code Toilet</a>.
 
 <script>
 	let tile = document.getElementById("tile");
@@ -42,17 +57,21 @@
 	}
 	setImage();
 
-	function move(dx, dy) {
-		state.set("x", +state.get("x") + dx);
-		state.set("y", +state.get("y") + dy);
+	function setState(x, y) {
+		state.set("x", x);
+		state.set("y", y);
 		history.pushState(state.toString(), "", "#" + state.toString());
 		setImage();
+	}
+	function move(dx, dy) {
+		setState(+state.get("x") + dx, +state.get("y") + dy);
 	}
 	window.onpopstate = function(event) {
 		state = new URLSearchParams(event.state);
 		setImage();
 	}
 	
+	home.onclick = () => setState(0, 0);
 	larr.onclick = () => move(-1,  0);
 	darr.onclick = () => move( 0,  1);
 	uarr.onclick = () => move( 0, -1);
