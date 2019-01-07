@@ -174,11 +174,20 @@ static noreturn void errkcgi(int eval, enum kcgi_err code, const char *str) {
 	errx(eval, "%s: %s", str, kcgi_strerror(code));
 }
 
+struct Stream {
+	struct kreq *req;
+	bool hup;
+};
+
+// XXX: Swallow writes after the connection is closed.
 static int streamWrite(void *cookie, const char *buf, int len) {
-	struct kreq *req = cookie;
-	enum kcgi_err error = khttp_write(req, buf, (size_t)len);
-	if (error == KCGI_HUP) return -1;
-	if (error) errkcgi(EX_IOERR, error, "khttp_write");
+	struct Stream *stream = cookie;
+	if (stream->hup) return len;
+	enum kcgi_err error = khttp_write(stream->req, buf, (size_t)len);
+	if (error) {
+		if (error != KCGI_HUP) errkcgi(EX_IOERR, error, "khttp_write");
+		stream->hup = true;
+	}
 	return len;
 }
 
@@ -219,7 +228,8 @@ static void worker(void) {
 		if (error == KCGI_HUP) goto next;
 		if (error) errkcgi(EX_IOERR, error, "khttp_body");
 
-		FILE *stream = fwopen(&req, streamWrite);
+		struct Stream cookie = { .req = &req };
+		FILE *stream = fwopen(&cookie, streamWrite);
 		if (!stream) err(EX_OSERR, "fwopen");
 
 		render(stream, tileX, tileY);
