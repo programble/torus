@@ -25,6 +25,7 @@
 #include <sys/stat.h>
 #include <sysexits.h>
 #include <unistd.h>
+#include <zlib.h>
 
 #ifdef __FreeBSD__
 #include <sys/capsicum.h>
@@ -158,7 +159,12 @@ static void render(FILE *stream, uint32_t tileX, uint32_t tileY) {
 		}
 	}
 
-	pngData(stream, (uint8_t *)data, sizeof(data));
+	uLong zlen = compressBound(sizeof(data));
+	uint8_t zdata[zlen];
+	int error = compress(zdata, &zlen, (uint8_t *)data, sizeof(data));
+	if (error) errx(EX_SOFTWARE, "compress: %d", error);
+
+	pngDeflated(stream, zdata, (size_t)zlen);
 	pngTail(stream);
 }
 
@@ -229,6 +235,7 @@ static void worker(void) {
 		if (error == KCGI_HUP) goto next;
 		if (error) errkcgi(EX_IOERR, error, "khttp_head");
 
+		// XXX: kcgi never enables compression for FastCGI.
 		error = khttp_body(&req);
 		if (error == KCGI_HUP) goto next;
 		if (error) errkcgi(EX_IOERR, error, "khttp_body");

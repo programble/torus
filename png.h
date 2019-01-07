@@ -1,4 +1,4 @@
-/* Copyright (C) 2018  Curtis McEnroe <june@causal.agency>
+/* Copyright (C) 2018, 2019  C. McEnroe <june@causal.agency>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -99,6 +99,12 @@ static inline void pngData(FILE *file, const uint8_t *data, uint32_t len) {
 	pngWrite(file, (uint8_t []) { 0x01, len, len >> 8, ~len, ~len >> 8 }, 5);
 	pngWrite(file, data, len);
 	pngInt32(file, adler2 << 16 | adler1);
+	pngInt32(file, ~pngCRC);
+}
+
+static inline void pngDeflated(FILE *file, const uint8_t *data, uint32_t len) {
+	pngChunk(file, "IDAT", len);
+	pngWrite(file, data, len);
 	pngInt32(file, ~pngCRC);
 }
 

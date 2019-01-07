@@ -3,7 +3,7 @@ CHROOT_GROUP = $(CHROOT_USER)
 
 CFLAGS += -std=c11 -Wall -Wextra -Wpedantic
 LDFLAGS = -static
-LDLIBS = -lcursesw -lutil
+LDLIBS = -lcursesw -lutil -lz
 
 -include config.mk
 
