@@ -165,9 +165,9 @@ static const struct kvalid Keys[KeysLen] = {
 	[KeyY] = { .name = "y", .valid = kvalid_int },
 };
 
-enum { PageIndex, PagesLen };
+enum { PageTile, PagesLen };
 static const char *Pages[PagesLen] = {
-	[PageIndex] = "index",
+	[PageTile] = "tile",
 };
 
 static noreturn void errkcgi(int eval, enum kcgi_err code, const char *str) {
@@ -177,6 +177,7 @@ static noreturn void errkcgi(int eval, enum kcgi_err code, const char *str) {
 static int streamWrite(void *cookie, const char *buf, int len) {
 	struct kreq *req = cookie;
 	enum kcgi_err error = khttp_write(req, buf, (size_t)len);
+	if (error == KCGI_HUP) return -1;
 	if (error) errkcgi(EX_IOERR, error, "khttp_write");
 	return len;
 }
@@ -184,7 +185,7 @@ static int streamWrite(void *cookie, const char *buf, int len) {
 static void worker(void) {
 	struct kfcgi *fcgi;
 	enum kcgi_err error = khttp_fcgi_init(
-		&fcgi, Keys, KeysLen, Pages, PagesLen, PageIndex
+		&fcgi, Keys, KeysLen, Pages, PagesLen, PageTile
 	);
 	if (error) errkcgi(EX_CONFIG, error, "khttp_fcgi_init");
 
@@ -205,22 +206,26 @@ static void worker(void) {
 		error = khttp_head(
 			&req, kresps[KRESP_STATUS], "%s", khttps[KHTTP_200]
 		);
+		if (error == KCGI_HUP) goto next;
 		if (error) errkcgi(EX_IOERR, error, "khttp_head");
 
 		error = khttp_head(
 			&req, kresps[KRESP_CONTENT_TYPE], "%s", kmimetypes[KMIME_IMAGE_PNG]
 		);
+		if (error == KCGI_HUP) goto next;
 		if (error) errkcgi(EX_IOERR, error, "khttp_head");
 
 		error = khttp_body(&req);
+		if (error == KCGI_HUP) goto next;
 		if (error) errkcgi(EX_IOERR, error, "khttp_body");
 
 		FILE *stream = fwopen(&req, streamWrite);
 		if (!stream) err(EX_OSERR, "fwopen");
 
 		render(stream, tileX, tileY);
-
 		fclose(stream);
+
+next:
 		khttp_free(&req);
 	}
 }
