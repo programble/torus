@@ -652,14 +652,16 @@ static void inputLine(bool keyCode, wchar_t ch) {
 			break; default: return;
 		}
 	}
-	if ((uint8_t)(cellX + dx) >= CellCols) return;
-	if ((uint8_t)(cellY + dy) >= CellRows) return;
 
 	uint8_t leave = lineCell(tile.cells[cellY][cellX], dx, dy);
 	uint8_t enter = lineCell(tile.cells[cellY + dy][cellX + dx], -dx, -dy);
 
 	if (leave) clientPut(input.color, leave);
+
+	if ((uint8_t)(cellX + dx) >= CellCols) return;
+	if ((uint8_t)(cellY + dy) >= CellRows) return;
 	clientMove(dx, dy);
+
 	if (enter) clientPut(input.color, enter);
 }
 
