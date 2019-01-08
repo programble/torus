@@ -47,9 +47,9 @@ DESCRIPTION
      -s sock
              Set path to UNIX-domain socket.  The default path is torus.sock.
 
-     -x x -y y
-             Set tile coordinates to render.  The default coordinates are
-             32,32.
+     -x x    Set tile X coordinate to render.
+
+     -y y    Set tile Y coordinate to render.
 
 IMPLEMENTATION NOTES
      This software targets FreeBSD and Darwin.
@@ -59,4 +59,4 @@ IMPLEMENTATION NOTES
 
      default8x16.psfu is taken from kbd: http://kbd-project.org.
 
-Causal Agency                  October 12, 2018                  Causal Agency
+Causal Agency                   January 8, 2019                  Causal Agency
