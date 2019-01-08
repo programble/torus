@@ -25,6 +25,10 @@
 
 #define ARRAY_LEN(a) (sizeof(a) / sizeof((a)[0]))
 
+static const char DefaultDataPath[] = "torus.dat";
+static const char DefaultSockPath[] = "torus.sock";
+static const char DefaultFontPath[] = "default8x16.psfu";
+
 enum {
 	ColorBlack,
 	ColorRed,

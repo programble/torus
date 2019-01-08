@@ -372,8 +372,8 @@ static bool clientTele(struct Client *client, uint8_t port) {
 int main(int argc, char *argv[]) {
 	int error;
 
-	const char *dataPath = "torus.dat";
-	const char *sockPath = "torus.sock";
+	const char *dataPath = DefaultDataPath;
+	const char *sockPath = DefaultSockPath;
 	const char *pidPath = NULL;
 	int opt;
 	while (0 < (opt = getopt(argc, argv, "d:p:s:"))) {

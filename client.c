@@ -679,7 +679,7 @@ static void readInput(void) {
 }
 
 int main(int argc, char *argv[]) {
-	const char *sockPath = "torus.sock";
+	const char *sockPath = DefaultSockPath;
 	int opt;
 	while (0 < (opt = getopt(argc, argv, "hs:"))) {
 		switch (opt) {

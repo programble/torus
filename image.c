@@ -256,8 +256,8 @@ next:
 
 int main(int argc, char *argv[]) {
 	bool kcgi = false;
-	const char *fontPath = "default8x16.psfu";
-	const char *dataPath = "torus.dat";
+	const char *fontPath = DefaultFontPath;
+	const char *dataPath = DefaultDataPath;
 	uint32_t tileX = TileInitX;
 	uint32_t tileY = TileInitY;
 
