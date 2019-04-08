@@ -41,9 +41,8 @@ chroot.tar: client image server default8x16.psfu
 	install -m 644 default8x16.psfu root/usr/share/torus
 	tar -cf chroot.tar -C root bin home usr var
 
-install: chroot.tar rc.kfcgi rc.torus explore.html index.html
+install: chroot.tar rc.torus explore.html index.html
 	tar -xf chroot.tar -C /home/$(CHROOT_USER)
-	install rc.kfcgi /usr/local/etc/rc.d/kfcgi
 	install rc.torus /usr/local/etc/rc.d/torus
 	install -o $(CHROOT_USER) -g $(CHROOT_GROUP) -m 644 \
 		explore.html \
